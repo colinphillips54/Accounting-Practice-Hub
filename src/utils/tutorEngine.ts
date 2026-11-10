@@ -58,105 +58,75 @@ YOUR INSTRUCTIONS:
    - USE DOUBLE NEWLINES: Place an empty blank line (\\n\\n) between every heading, paragraph, table, and bullet list so sections are clearly separated with proper breathing room.`;
 }
 
-/**
- * Intelligent Canadian Accounting Fallback Engine.
- * If external AI services are unreachable, experiencing high demand (503), or timing out,
- * this engine generates an in-depth, specific, educational answer tailored to the student's exact question.
- */
-export function generateEducationalExplanation(context: TutorContext): string {
-  const rawQ = (context.question || '').trim();
-  const q = rawQ.toLowerCase();
-  const title = (context.scenarioTitle || '').toLowerCase();
-  const narrative = (context.scenarioNarrative || '').toLowerCase();
-  const topic = (context.scenarioTopic || '').toLowerCase();
+export interface TutorFaq {
+  id: string;
+  category: 'Journal Entries' | 'Adjusting Entries' | 'Financial Statements' | 'Depreciation' | 'Inventory' | 'Revenue Recognition' | 'Liabilities' | 'Assets' | 'Standards';
+  question: string;
+  response: string;
+}
 
-  // =========================================================================
-  // 1. PREDEFINED FREQUENTLY ASKED QUESTIONS (QUICK PROMPTS)
-  // Preserves exact customized pedagogical content when students select FAQs
-  // =========================================================================
+export const ACCOUNTING_FAQS: TutorFaq[] = [
+  // 1. Journal Entries
+  {
+    id: 'faq-expenses-debit',
+    category: 'Journal Entries',
+    question: 'Why do expenses have a normal debit balance if they decrease Shareholders\' Equity?',
+    response: `### Why Expenses Have a Normal Debit Balance
 
-  // FAQ 1: Why is Unearned Revenue debited when revenue is earned?
-  const isFaqUnearned = (q.includes('unearned') && q.includes('debit') && (q.includes('earn') || q.includes('recogniz'))) ||
-    (q.includes('why is unearned revenue debited'));
-  if (isFaqUnearned) {
-    return `### Why Unearned Revenue is Debited When Earned
+**1. The Accounting Logic of Debits and Equity Reductions**
 
-**1. Underlying Accounting Treatment (Accrual Accounting & Revenue Recognition)**
+Students often find it counterintuitive that expenses have a **Debit normal balance** when Shareholders' Equity has a **Credit normal balance**. Here is the mathematical and economic explanation:
 
-Under Canadian accounting standards (**IFRS 15** for public enterprises and **ASPE Section 3400** for private enterprises), revenue cannot be recognized when cash is initially received if the performance obligation has not yet been satisfied.
+* **The Expanded Accounting Equation:**
+  $$\\text{Assets} + \\text{Expenses} + \\text{Dividends} = \\text{Liabilities} + \\text{Common Shares} + \\text{Revenues}$$
+  In Canadian standard notation:
+  **Assets + Expenses + Dividends (Left Side / DEBIT increases)** = **Liabilities + Equity + Revenues (Right Side / CREDIT increases)**
+* Because Net Income = Revenues − Expenses, an increase in an expense **reduces** Net Income, which in turn **reduces** ending Retained Earnings in Shareholders' Equity.
+* In double-entry bookkeeping, to **decrease** an account with a normal Credit balance (like Shareholders' Equity), you must record a **Debit**. Therefore, all expenses naturally accumulate as Debits during the period!
 
-* When the customer originally paid in advance, your company had an outstanding legal obligation to provide services, recorded as a liability in **Unearned Service Revenue**.
-* Once your company actually performs the agreed services, that liability is extinguished (discharged). Under the **revenue recognition principle**, the earnings process is now complete.
+**2. Demonstrated Flow to Financial Statements**
 
-**2. Accounts Involved and Classifications**
+| Account Category | Normal Balance | To Increase | To Decrease | Effect on Shareholders' Equity |
+| :--- | :--- | :--- | :--- | :--- |
+| **Revenues** | Credit | Credit | Debit | **Increases Equity** |
+| **Expenses** | Debit | Debit | Credit | **Decreases Equity** |
 
-* **Unearned Service Revenue** (*Current Liability*, Normal Credit Balance): Because your obligation to the customer is now fulfilled, the liability has decreased. Liabilities decrease on the **Debit** side.
-* **Service Revenue** (*Revenue / Shareholders' Equity*, Normal Credit Balance): Because you successfully performed the service, revenue is recognized. Revenues increase on the **Credit** side.
+**3. Closing Process Connection**
 
-**3. Demonstrated Journal Entry**
+At the end of the accounting period, all temporary expense accounts (which carry Debit balances) are closed by **Crediting** each expense account and **Debiting** Income Summary or Retained Earnings directly. This debit to Retained Earnings officially decreases Shareholders' Equity on the Statement of Financial Position.`
+  },
+  {
+    id: 'faq-dealer-framework',
+    category: 'Journal Entries',
+    question: 'Why do debits always equal credits in double-entry bookkeeping (the DEALER framework)?',
+    response: `### Rules of Debits and Credits & Normal Balances
 
-| Account Name | Debit | Credit |
-| :--- | :--- | :--- |
-| **Unearned Service Revenue** | $1,000 | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**Service Revenue** | | $1,000 |
+**1. The DEALER Framework**
 
-*(To record revenue earned and discharge of performance obligation)*
+The easiest way to master debits and credits under Canadian accounting standards is the **DEALER** acronym:
 
-**4. Impact on the Financial Statements**
+| Letter | Category | Normal Balance | To Increase | To Decrease |
+| :--- | :--- | :--- | :--- | :--- |
+| **D** | **Dividends** | **Debit** | Debit | Credit |
+| **E** | **Expenses** | **Debit** | Debit | Credit |
+| **A** | **Assets** | **Debit** | Debit | Credit |
+| **L** | **Liabilities** | **Credit** | Credit | Debit |
+| **E** | **Equity (Common Shares / Retained Earnings)** | **Credit** | Credit | Debit |
+| **R** | **Revenues** | **Credit** | Credit | Debit |
 
-* **Income Statement:** Service Revenue increases → Operating Income and **Net Income increase**.
-* **Statement of Retained Earnings:** Higher Net Income flows into ending **Retained Earnings**, increasing total **Shareholders' Equity**.
-* **Statement of Financial Position (Balance Sheet):**
-  * **Assets:** Unchanged (cash was collected in an earlier period).
-  * **Liabilities:** Decrease (Unearned Service Revenue liability is extinguished).
-  * **Shareholders' Equity:** Increases by the exact same amount via Net Income.
-  * **Equation:** Change in Assets ($0) = Change in Liabilities (-$1,000) + Change in Shareholders' Equity (+$1,000). The fundamental equation remains balanced!`;
-  }
+**2. The Fundamental Accounting Equation**
 
-  // FAQ 2: Why is Accumulated Depreciation a credit balance contra-asset instead of crediting Equipment directly?
-  const isFaqContraAsset = (q.includes('contra-asset') || q.includes('contra asset') || (q.includes('accumulated depreciation') && (q.includes('credit') || q.includes('directly') || q.includes('instead')))) &&
-    !q.includes('diminishing') && !q.includes('declining') && !q.includes('double declining') && !q.includes('calculate') && !q.includes('method');
-  if (isFaqContraAsset) {
-    return `### Understanding Accumulated Depreciation as a Contra-Asset
+$$\\text{Assets} = \\text{Liabilities} + \\text{Shareholders' Equity}$$
 
-**1. Underlying Accounting Treatment (Cost Allocation & Matching)**
-
-Under Canadian standards (**IAS 16** *Property, Plant and Equipment* under IFRS, and **ASPE Section 3061**), depreciation is **not** a valuation technique to determine what an asset could be sold for today. Rather, it is a systematic **allocation of the historical acquisition cost** of a tangible capital asset over its estimated useful service life.
-
-* The matching principle dictates that the expense of utilizing the equipment must be recognized in the same accounting periods during which the equipment helps generate revenue.
-
-**2. Accounts Involved and Classifications**
-
-* **Depreciation Expense** (*Operating Expense / Income Statement*): Represents the portion of the asset's economic benefits consumed during the current operating period. Expenses increase on the **Debit** side.
-* **Accumulated Depreciation — Equipment** (*Contra-Asset / Statement of Financial Position*): Represents the cumulative depreciation recognized on the asset since acquisition. As a contra-asset, it carries a **Credit** normal balance and directly offsets the original Equipment cost.
-
-**3. Demonstrated Journal Entry**
-
-| Account Name | Debit | Credit |
-| :--- | :--- | :--- |
-| **Depreciation Expense** | $500 | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**Accumulated Depreciation — Equipment** | | $500 |
-
-*(To record monthly depreciation of productive equipment)*
-
-*Why not credit Equipment directly?* Canadian accounting standards require keeping the original historical acquisition cost intact in the Equipment asset account. Crediting Accumulated Depreciation allows financial statement users to see both original cost and cumulative usage.
-
-**4. Impact on the Financial Statements**
-
-* **Income Statement:** Depreciation Expense increases operating expenses → **Net Income decreases**.
-* **Statement of Retained Earnings:** Lower Net Income reduces ending **Retained Earnings** in **Shareholders' Equity**.
-* **Statement of Financial Position (Balance Sheet):**
-  * **Equipment (Gross Cost):** Remains at historical acquisition cost.
-  * **Less: Accumulated Depreciation:** Increases with a credit, reducing **Carrying Amount (Net Book Value)**.
-  * **Net Assets:** Decrease by the depreciation amount.
-  * **Shareholders' Equity:** Decreases by the exact same amount via Net Income.
-  * **Equation:** Change in Assets (-$500 via Contra-Asset) = Change in Liabilities ($0) + Change in Shareholders' Equity (-$500). Perfect balance!`;
-  }
-
-  // FAQ 3: How do Common Shares work under Canadian corporate law (CBCA/OBCA)?
-  const isFaqCommonShares = q.includes('cbca') || q.includes('obca') || (q.includes('common share') && (q.includes('corporate law') || q.includes('par value') || q.includes('nominal value')));
-  if (isFaqCommonShares) {
-    return `### Common Shares Under Canadian Corporate Law (CBCA / OBCA)
+* **Debit:** Simply means the **left side** of an account.
+* **Credit:** Simply means the **right side** of an account.
+* Every transaction must have at least one debit and one credit, and the total dollar amount of debits must **always equal** total credits.`
+  },
+  {
+    id: 'faq-cbca-common-shares',
+    category: 'Journal Entries',
+    question: 'How do Common Shares work under Canadian corporate law (CBCA/OBCA) without par value?',
+    response: `### Common Shares Under Canadian Corporate Law (CBCA / OBCA)
 
 **1. Underlying Corporate Statute & Accounting Framework**
 
@@ -182,143 +152,278 @@ Under Canadian federal corporate law (the *Canada Business Corporations Act* —
 **4. Financial Statement Impacts**
 
 * **Income Statement:** Zero effect. Share issuances are financing capital transactions, not operational revenues.
-* **Statement of Financial Position:** Assets increase (+Cash) and Shareholders' Equity increases (+Common Shares) by the exact same dollar amount. The fundamental accounting equation remains perfectly balanced.`;
-  }
+* **Statement of Financial Position:** Assets increase (+Cash) and Shareholders' Equity increases (+Common Shares) by the exact same dollar amount. The fundamental accounting equation remains perfectly balanced.`
+  },
+  {
+    id: 'faq-dividends-accounting',
+    category: 'Journal Entries',
+    question: 'How do you record dividends declared and paid, and why are dividends not an operating expense?',
+    response: `### Accounting for Dividends Declared and Paid
 
-  // FAQ 4: Why do expenses have a normal debit balance if they decrease Shareholders' Equity?
-  const isFaqExpensesDebit = q.includes('expense') && q.includes('debit') && (q.includes('decrease') || q.includes('equity') || q.includes('shareholder') || q.includes('why do expense'));
-  if (isFaqExpensesDebit) {
-    return `### Why Expenses Have a Normal Debit Balance
+**1. Underlying Accounting Treatment**
 
-**1. The Accounting Logic of Debits and Equity Reductions**
+Under Canadian accounting standards (**ASPE Section 3251** and **IAS 1**), dividends represent a voluntary distribution of accumulated corporate wealth back to the company's **shareholders**.
 
-Students often find it counterintuitive that expenses have a **Debit normal balance** when Shareholders' Equity has a **Credit normal balance**. Here is the mathematical and economic explanation:
+* **Crucial Student Distinction:** Dividends are **never** an expense on the Income Statement! Expenses are costs incurred to generate revenue; dividends are an allocation of profits already earned.
 
-* **The Expanded Accounting Equation:**
-  $$\\text{Assets} + \\text{Expenses} + \\text{Dividends} = \\text{Liabilities} + \\text{Common Shares} + \\text{Revenues}$$
-  In Canadian standard notation:
-  **Assets + Expenses + Dividends (Left Side / DEBIT increases)** = **Liabilities + Equity + Revenues (Right Side / CREDIT increases)**
-* Because Net Income = Revenues − Expenses, an increase in an expense **reduces** Net Income, which in turn **reduces** ending Retained Earnings in Shareholders' Equity.
-* In double-entry bookkeeping, to **decrease** an account with a normal Credit balance (like Shareholders' Equity), you must record a **Debit**. Therefore, all expenses naturally accumulate as Debits during the period!
+**2. Accounts Involved and Classifications**
 
-**2. Demonstrated Flow to Financial Statements**
+* **Dividends** (*Contra-Equity / Temporary Account*, Normal Debit Balance): Tracks distributions declared during the period. It increases on the **Debit** side because it directly reduces Retained Earnings.
+* **Cash** (*Current Asset*, Normal Debit Balance): Asset paid out to shareholders, reduced with a **Credit**.
 
-| Account Category | Normal Balance | To Increase | To Decrease | Effect on Shareholders' Equity |
+**3. Demonstrated Journal Entry**
+
+| Account Name | Debit | Credit |
+| :--- | :--- | :--- |
+| **Dividends** | $2,500 | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**Cash** | | $2,500 |
+
+*(To record cash dividend declared and paid to shareholders)*
+
+**4. Financial Statement Impacts**
+
+* **Income Statement:** No effect. Net Income is not reduced by dividends.
+* **Statement of Retained Earnings:** Deducted from (Beginning Retained Earnings + Net Income) to determine **Ending Retained Earnings**.
+* **Statement of Financial Position:** Assets decrease (-Cash) and Shareholders' Equity decreases (-Retained Earnings). The accounting equation remains balanced.`
+  },
+
+  // 2. Adjusting Entries
+  {
+    id: 'faq-cash-never-adjusting',
+    category: 'Adjusting Entries',
+    question: 'Why is Cash never included in an adjusting journal entry?',
+    response: `### Why Cash is Never Included in an Adjusting Journal Entry
+
+**1. The Core Purpose of Adjusting Entries**
+
+Under the **accrual basis of accounting** (**IFRS / ASPE**), adjusting entries are made strictly at the **end of an accounting period** to align revenues with the period earned and expenses with the period incurred.
+
+* **THE GOLDEN RULE:** **Cash is NEVER part of an adjusting entry!**
+* If cash is being received or paid today, it is a routine daily transaction recorded through the cash receipts or cash disbursements journal—not a period-end adjusting entry.
+* Adjusting entries always involve **one Balance Sheet account** (an asset or liability) and **one Income Statement account** (a revenue or expense), never Cash.
+
+**2. The Four Adjusting Scenarios**
+
+* **1. Accrued Revenue:** Work done now, cash collected later (DR Receivable, CR Revenue).
+* **2. Accrued Expense:** Cost incurred now, cash paid later (DR Expense, CR Payable).
+* **3. Deferred/Unearned Revenue:** Cash collected in the past, earned now (DR Unearned Revenue, CR Revenue).
+* **4. Deferred/Prepaid Expense:** Cash paid in the past, expired/consumed now (DR Expense, CR Prepaid Asset).
+
+**3. Summary Table**
+
+| Adjustment Type | Prior Cash Event | Adjusting Entry Debit | Adjusting Entry Credit | Cash Involved? |
 | :--- | :--- | :--- | :--- | :--- |
-| **Revenues** | Credit | Credit | Debit | **Increases Equity** |
-| **Expenses** | Debit | Debit | Credit | **Decreases Equity** |
+| **Accrued Expense** | Cash will occur in future | Expense | Liability | **No** |
+| **Accrued Revenue** | Cash will occur in future | Asset (Receivable) | Revenue | **No** |
+| **Prepaid Expense** | Cash occurred in past | Expense | Asset (Prepaid) | **No** |
+| **Unearned Revenue** | Cash occurred in past | Liability (Unearned) | Revenue | **No** |`
+  },
+  {
+    id: 'faq-accruals-vs-deferrals',
+    category: 'Adjusting Entries',
+    question: 'What is the difference between accruals and deferrals, and what are the 4 main types of adjusting entries?',
+    response: `### Accruals vs. Deferrals: The 4 Adjusting Entry Types
 
-**3. Closing Process Connection**
+**1. The Fundamental Difference**
 
-At the end of the accounting period, all temporary expense accounts (which carry Debit balances) are closed by **Crediting** each expense account and **Debiting** Income Summary or Retained Earnings directly. This debit to Retained Earnings officially decreases Shareholders' Equity on the Statement of Financial Position.`;
-  }
+The difference between accruals and deferrals comes down to **when cash moves relative to when the economic event occurs**:
 
-  // FAQ 5: What is the difference between Accounts Payable and Notes Payable?
-  const isFaqApVsNp = (q.includes('accounts payable') && q.includes('notes payable')) || (q.includes('payable') && (q.includes('difference') || q.includes('vs')));
-  if (isFaqApVsNp) {
-    return `### Accounts Payable vs. Notes Payable Explained
+* **Accruals (Action First, Cash Later):** The service is performed or the expense is incurred **before** any cash changes hands.
+* **Deferrals (Cash First, Action Later):** Cash is received or paid **in advance**, and recognition of revenue or expense is postponed (deferred) to a future period.
 
-**1. Accounts Payable (Trade Credit)**
+**2. The 4 Main Types of Adjusting Entries**
 
-* **Nature:** Informal short-term obligations arising from everyday purchases of inventory, goods, or operational services on open account.
-* **Documentation & Terms:** Supported by a supplier invoice with standard trade credit terms (e.g., Net 30 days or 2/10, n/30).
-* **Interest:** Does not typically carry explicit interest unless the invoice becomes overdue.
-* **Classification:** Almost always a **Current Liability** on the Statement of Financial Position.
+* **Type 1 — Accrued Revenues:** Revenues earned for services performed but not yet billed or collected.
+  * *Example:* Accrued interest on a note receivable.
+  * *Entry:* **Debit** Interest Receivable, **Credit** Interest Revenue.
+* **Type 2 — Accrued Expenses:** Expenses incurred during the period but not yet paid or recorded.
+  * *Example:* Employee salaries earned at month-end, paid next week.
+  * *Entry:* **Debit** Salaries Expense, **Credit** Salaries Payable.
+* **Type 3 — Deferred (Unearned) Revenues:** Cash received before performance obligations are satisfied.
+  * *Example:* Client deposit for a 3-month consulting project.
+  * *Entry:* **Debit** Unearned Service Revenue, **Credit** Service Revenue.
+* **Type 4 — Deferred (Prepaid) Expenses:** Expenses paid in cash and recorded as assets before they are used or consumed.
+  * *Example:* 12-month insurance policy paid in advance.
+  * *Entry:* **Debit** Insurance Expense, **Credit** Prepaid Insurance.`
+  },
+  {
+    id: 'faq-prepaid-expenses',
+    category: 'Adjusting Entries',
+    question: 'How do you account for prepaid expenses when insurance or rent expires?',
+    response: `### Accounting for Prepaid Expenses & Expirations
 
-**2. Notes Payable (Promissory Note)**
+**1. Underlying Accounting Treatment**
 
-* **Nature:** Formal written contractual promise to repay a specified principal amount plus interest at a fixed future date.
-* **Documentation & Terms:** Formal legal promissory note specifying the principal, maturity date, and stated annual interest rate.
-* **Interest:** Accumulates interest over time (Principal × Rate × Time), requiring adjusting entries under Canadian standards for **Interest Expense** and **Interest Payable**.
-* **Classification:** Can be a **Current Liability** (if maturing within 12 months) or a **Non-Current (Long-Term) Liability** under Canadian standards.
+When an operating cost (such as insurance or rent) is paid in advance, it is initially recorded as an **Asset (Prepaid Expense)** because it provides future economic benefits.
 
-**3. Comparative Summary**
+* At the end of each accounting period, an adjusting entry must be made under **ASPE / IFRS** to recognize the portion of coverage that has expired during the period as an **Expense**.
 
-| Attribute | Accounts Payable | Notes Payable |
-| :--- | :--- | :--- |
-| **Legal Form** | Informal purchase order / supplier invoice | Formal written promissory note |
-| **Explicit Interest** | No (unless past due) | Yes (stated annual rate) |
-| **Typical Term** | 30 to 60 days | 60 days to multiple years |
-| **Year-End Adjustment** | None for interest | Accrue Interest Expense & Interest Payable |`;
-  }
+**2. Accounts Involved and Classifications**
 
-  // FAQ 6: How does depreciation affect the Statement of Financial Position and Net Income?
-  const isFaqDeprecImpact = q.includes('depreciat') && (q.includes('financial position') || q.includes('balance sheet')) && (q.includes('net income') || q.includes('income statement'));
-  if (isFaqDeprecImpact) {
-    return `### How Depreciation Affects Financial Statements
+* **Insurance / Rent Expense** (*Operating Expense*): Reflects the expired benefit. Increases with a **Debit**.
+* **Prepaid Insurance / Rent** (*Current Asset*): Reflects the reduction in future benefits. Decreases with a **Credit**.
 
-**1. The Dual Impact of Depreciation**
-
-When a depreciation adjusting entry is recorded at the end of an accounting period, it has an immediate, simultaneous impact on both the **Income Statement** and the **Statement of Financial Position**:
-
-**2. Impact on the Income Statement**
-
-* **Depreciation Expense** increases operating expenses for the period.
-* Higher operating expenses directly cause **Operating Income and Net Income to decrease**.
-* Cash is **not affected** — depreciation is a non-cash expense that allocates past cash spent on capital assets.
-
-**3. Impact on the Statement of Financial Position (Balance Sheet)**
-
-* **Gross Asset Cost:** Remains completely unchanged in the **Equipment** or **Building** account to preserve historical cost under IAS 16 / ASPE 3061.
-* **Accumulated Depreciation:** Increases on the credit side as a **contra-asset**.
-* **Carrying Amount (Net Book Value):** Decreases ($Cost - Accumulated Depreciation$). Total assets decrease.
-* **Shareholders' Equity:** Decreases by the exact same dollar amount because lower Net Income reduces ending **Retained Earnings**.
-
-**4. Visual Equation Impact**
-
-$$\\Delta \\text{Assets} (-\\text{Carrying Amount}) = \\Delta \\text{Liabilities} ($0) + \\Delta \\text{Shareholders' Equity} (-\\text{Retained Earnings})$$
-Total Assets and Total Liabilities plus Shareholders' Equity remain in perfect equilibrium.`;
-  }
-
-  // FAQ 7: Explain the 2-step perpetual inventory sales entry under Canadian standards (IFRS / ASPE)
-  const isFaqPerpetual = (q.includes('2-step') || q.includes('two-step') || q.includes('perpetual')) && (q.includes('inventory') || q.includes('sales entry'));
-  if (isFaqPerpetual) {
-    return `### Perpetual Inventory System & Canadian Standards
-
-**1. The 2-Step Perpetual Sales Entry**
-
-In a perpetual inventory system under Canadian standards, recording a merchandise sale requires **two simultaneous entries**:
-
-* **Entry A (Record Sale to Customer at Retail Price):**
+**3. Demonstrated Journal Entry**
 
 | Account Name | Debit | Credit |
 | :--- | :--- | :--- |
-| **Cash (or Accounts Receivable)** | $1,200 | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**Sales Revenue** | | $1,200 |
+| **Insurance Expense** | $400 | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**Prepaid Insurance** | | $400 |
 
-*(To record revenue earned from merchandise sale)*
+*(To record one month of expired insurance coverage)*
 
-* **Entry B (Record Inventory Outflow & Wholesale Cost):**
+**4. Financial Statement Impacts**
+
+* **Income Statement:** Operating expenses increase → **Net Income decreases**.
+* **Statement of Financial Position:** Assets decrease (-Prepaid Insurance) and Shareholders' Equity decreases by the exact same amount (-Retained Earnings via lower Net Income).`
+  },
+  {
+    id: 'faq-omitted-adjustments',
+    category: 'Adjusting Entries',
+    question: 'What are the financial statement consequences of omitting period-end adjusting entries?',
+    response: `### Financial Statement Consequences of Omitting Adjusting Entries
+
+**1. The Ripple Effect of Missing Adjustments**
+
+If period-end adjusting entries are omitted, financial statements under Canadian standards (**IFRS / ASPE**) become materially misstated. Because every adjusting entry connects a Balance Sheet account with an Income Statement account, omitting an entry misstates **both statements simultaneously**:
+
+**2. Error Matrix for the 4 Adjusting Scenarios**
+
+| Omitted Adjusting Entry | Income Statement Impact | Balance Sheet Impact |
+| :--- | :--- | :--- |
+| **1. Accrued Expense** (e.g., unpaid salaries or interest) | Expenses understated → **Net Income overstated** | Liabilities understated, **Equity overstated** |
+| **2. Accrued Revenue** (e.g., unbilled consulting or interest) | Revenues understated → **Net Income understated** | Assets understated, **Equity understated** |
+| **3. Prepaid Expense Expiration** (e.g., expired insurance/rent) | Expenses understated → **Net Income overstated** | Assets overstated, **Equity overstated** |
+| **4. Unearned Revenue Earned** (e.g., completed service deposit) | Revenues understated → **Net Income understated** | Liabilities overstated, **Equity understated** |
+| **5. Depreciation Expense** | Expenses understated → **Net Income overstated** | Assets (Carrying Value) overstated, **Equity overstated** |
+
+**3. CPA Exam Takeaway**
+
+Whenever an exam problem asks "What is the effect of failing to record...?", look at whether the adjusting entry debits an expense or credits a revenue:
+* **Missed Expense Debit:** Net Income is ALWAYS **overstated**.
+* **Missed Revenue Credit:** Net Income is ALWAYS **understated**.`
+  },
+
+  // 3. Financial Statements
+  {
+    id: 'faq-financial-statements-articulation',
+    category: 'Financial Statements',
+    question: 'How do the four financial statements connect and articulate in Canadian financial reporting?',
+    response: `### How the Four Financial Statements Articulate
+
+**1. The Sequence of Financial Statements**
+
+Under Canadian accounting standards (**IAS 1** under IFRS and **ASPE Section 1400**), financial statements must be prepared in a specific sequential order because the output of one statement serves as the direct input to the next:
+
+1. **Income Statement (or Statement of Profit or Loss):**
+   * Revenues − Expenses = **Net Income**.
+2. **Statement of Retained Earnings (or Statement of Changes in Equity):**
+   * Beginning Retained Earnings + **Net Income** − Dividends Declared = **Ending Retained Earnings**.
+3. **Statement of Financial Position (Balance Sheet):**
+   * Assets = Liabilities + Shareholders' Equity (where Shareholders' Equity includes **Ending Retained Earnings** and Common Shares).
+4. **Statement of Cash Flows:**
+   * Reconciles cash from Operating, Investing, and Financing activities. The ending cash figure matches **Cash and Cash Equivalents** on the Statement of Financial Position.
+
+**2. Visual Articulation Flow**
+
+$$\\text{Net Income (Income Statement)} \\longrightarrow \\text{Retained Earnings (Equity Statement)} \\longrightarrow \\text{Equity (Balance Sheet)}$$
+
+$$\\text{Ending Cash (Cash Flow Statement)} = \\text{Cash Asset (Balance Sheet)}$$`
+  },
+  {
+    id: 'faq-trial-balance-stages',
+    category: 'Financial Statements',
+    question: 'What is the difference between an unadjusted, adjusted, and post-closing trial balance?',
+    response: `### Unadjusted vs. Adjusted vs. Post-Closing Trial Balance
+
+**1. Overview of the Three Stages**
+
+In the accounting cycle under Canadian standards, three distinct trial balances are prepared at different milestones:
+
+| Stage | Milestone in Accounting Cycle | Accounts Included | Purpose |
+| :--- | :--- | :--- | :--- |
+| **1. Unadjusted Trial Balance** | After posting all daily routine transactions | All active accounts (Assets, Liabilities, Equity, Revenues, Expenses) | Checks initial equality of debits and credits before period-end adjustments. |
+| **2. Adjusted Trial Balance** | After journalizing and posting period-end adjusting entries | All updated accounts (including accruals, deferrals, depreciation) | **Primary source used to prepare the formal Financial Statements.** |
+| **3. Post-Closing Trial Balance** | After temporary accounts have been closed | **Permanent (Real) Balance Sheet accounts only** (Assets, Liabilities, Common Shares, Retained Earnings) | Proves that debits equal credits and that all revenue/expense/dividend accounts are at zero before the new year starts. |
+
+**2. Key Exam Rule**
+
+The **Post-Closing Trial Balance** will NEVER contain:
+* Sales Revenue or Service Revenue
+* Cost of Goods Sold or Operating Expenses
+* Dividends Declared
+* Income Summary`
+  },
+  {
+    id: 'faq-trial-balance-errors',
+    category: 'Financial Statements',
+    question: 'What types of errors are caught by a trial balance, and which errors remain undetected?',
+    response: `### The Trial Balance: Error Detection Limitations
+
+**1. What a Trial Balance Proves**
+
+A trial balance proves only one thing: that **total debits equal total credits**. It does not guarantee that transactions were recorded correctly.
+
+**2. Errors That CAUSE an Unequal Trial Balance (Detected)**
+
+* **Transposition error in one account:** $5,400 entered as $4,500 on one side only.
+* **Slide error:** $1,000 recorded as $100 on one side.
+* **Posting only one side:** A debit was posted to Cash, but the credit to Revenue was forgotten.
+* **Double debiting:** An entry posted with two debits instead of one debit and one credit.
+
+**3. Errors That DO NOT Affect Equality (Undetected by Trial Balance)**
+
+* **Complete Omission:** A transaction was never recorded in the journal.
+* **Wrong Account:** A debit was posted to Supplies instead of Equipment (both are assets, so debits still equal credits).
+* **Compensating Errors:** An error of +$500 in one debit offset by an unrelated error of +$500 in another credit.
+* **Reversal of Accounts:** Debiting Revenue and crediting Cash (wrong accounts, but debits still equal credits).`
+  },
+  {
+    id: 'faq-closing-entries',
+    category: 'Financial Statements',
+    question: 'How does the temporary account closing process work into Retained Earnings?',
+    response: `### The Closing Process & Retained Earnings
+
+**1. Temporary vs. Permanent Accounts**
+
+Under Canadian accounting standards (**IFRS / ASPE**):
+* **Temporary (Nominal) Accounts:** Track activity for a single accounting period. At period-end, they must be closed to a zero balance so the next period starts fresh.
+  * Includes: **Revenues**, **Expenses**, and **Dividends**.
+* **Permanent (Real) Accounts:** Balances carry forward cumulatively into the next accounting period.
+  * Includes: **Assets**, **Liabilities**, and **Shareholders' Equity** (Common Shares, Retained Earnings).
+
+**2. The 4-Step Closing Process**
+
+* **Step 1: Close Revenues to Income Summary**
+  * **Debit:** All Revenue accounts (to zero their credit balances).
+  * **Credit:** Income Summary.
+* **Step 2: Close Expenses to Income Summary**
+  * **Debit:** Income Summary (total expenses).
+  * **Credit:** All Expense accounts (to zero their debit balances).
+* **Step 3: Close Income Summary to Retained Earnings**
+  * If Net Income: **Debit** Income Summary, **Credit** Retained Earnings.
+  * If Net Loss: **Debit** Retained Earnings, **Credit** Income Summary.
+* **Step 4: Close Dividends to Retained Earnings**
+  * **Debit:** Retained Earnings.
+  * **Credit:** Dividends (to zero out its debit balance).
+
+**3. Demonstrated Closing Entry (Alternative Direct to Retained Earnings)**
 
 | Account Name | Debit | Credit |
 | :--- | :--- | :--- |
-| **Cost of Goods Sold (COGS)** | $700 | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**Merchandise Inventory** | | $700 |
+| **Sales Revenue** | $40,000 | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**Operating Expenses (various)** | | $28,000 |
+| &nbsp;&nbsp;&nbsp;&nbsp;**Retained Earnings (Net Income plug)** | | $12,000 |
 
-*(To transfer cost of goods sold from asset inventory to operating expense)*
+*(To close revenues and expenses directly into Retained Earnings)*`
+  },
 
-**2. Crucial Canadian Accounting Rule: LIFO is Prohibited!**
-
-Under both **IFRS (IAS 2)** and **ASPE (Section 3031)**, the **Last-In, First-Out (LIFO)** inventory valuation method is **strictly prohibited** in Canada.
-
-* Canadian companies must choose between **FIFO (First-In, First-Out)** or **Weighted Average Cost**.
-* Inventory must be valued at the **Lower of Cost and Net Realizable Value (LCNRV)**.`;
-  }
-
-  // =========================================================================
-  // 2. DYNAMIC SPECIFIC ACCOUNTING QUESTION ENGINES
-  // Tailored to students' custom questions across all core accounting topics
-  // =========================================================================
-
-  // A. Diminishing-Balance (Declining-Balance) / Accelerated Depreciation Calculation
-  if (
-    q.includes('diminishing') ||
-    q.includes('declining') ||
-    q.includes('ddb') ||
-    q.includes('accelerated depreciation') ||
-    (q.includes('depreciat') && (q.includes('calculate') || q.includes('formula') || q.includes('method') || q.includes('double declining')))
-  ) {
-    return `### Calculating Depreciation Using the Diminishing-Balance (Declining-Balance) Method
+  // 4. Depreciation
+  {
+    id: 'faq-diminishing-balance',
+    category: 'Depreciation',
+    question: 'How do you calculate depreciation using the diminishing-balance (declining-balance) method?',
+    response: `### Calculating Depreciation Using the Diminishing-Balance (Declining-Balance) Method
 
 **1. Conceptual Rationale & Canadian Accounting Standards**
 
@@ -372,16 +477,427 @@ Suppose equipment is purchased on Jan 1 for **$20,000**, with a **5-year useful 
 **6. Financial Statement Impact**
 
 * **Income Statement:** Operating expenses increase by the calculated amount → **Net Income decreases**.
-* **Statement of Financial Position:** Equipment gross cost remains intact at $20,000; Accumulated Depreciation increases with a credit, reducing net carrying amount. Shareholders' Equity decreases by the exact same amount via Net Income.`;
-  }
+* **Statement of Financial Position:** Equipment gross cost remains intact at $20,000; Accumulated Depreciation increases with a credit, reducing net carrying amount. Shareholders' Equity decreases by the exact same amount via Net Income.`
+  },
+  {
+    id: 'faq-accumulated-depreciation',
+    category: 'Depreciation',
+    question: 'Why is Accumulated Depreciation a credit balance contra-asset instead of crediting Equipment directly?',
+    response: `### Understanding Accumulated Depreciation as a Contra-Asset
 
-  // B. Bank Reconciliation
-  if (
-    q.includes('bank rec') ||
-    q.includes('reconciliation') ||
-    (q.includes('bank') && (q.includes('statement') || q.includes('book balance') || q.includes('transit') || q.includes('outstanding cheq') || q.includes('nsf')))
-  ) {
-    return `### How to Prepare a Bank Reconciliation
+**1. Underlying Accounting Treatment (Cost Allocation & Matching)**
+
+Under Canadian standards (**IAS 16** *Property, Plant and Equipment* under IFRS, and **ASPE Section 3061**), depreciation is **not** a valuation technique to determine what an asset could be sold for today. Rather, it is a systematic **allocation of the historical acquisition cost** of a tangible capital asset over its estimated useful service life.
+
+* The matching principle dictates that the expense of utilizing the equipment must be recognized in the same accounting periods during which the equipment helps generate revenue.
+
+**2. Accounts Involved and Classifications**
+
+* **Depreciation Expense** (*Operating Expense / Income Statement*): Represents the portion of the asset's economic benefits consumed during the current operating period. Expenses increase on the **Debit** side.
+* **Accumulated Depreciation — Equipment** (*Contra-Asset / Statement of Financial Position*): Represents the cumulative depreciation recognized on the asset since acquisition. As a contra-asset, it carries a **Credit** normal balance and directly offsets the original Equipment cost.
+
+**3. Demonstrated Journal Entry**
+
+| Account Name | Debit | Credit |
+| :--- | :--- | :--- |
+| **Depreciation Expense** | $500 | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**Accumulated Depreciation — Equipment** | | $500 |
+
+*(To record monthly depreciation of productive equipment)*
+
+*Why not credit Equipment directly?* Canadian accounting standards require keeping the original historical acquisition cost intact in the Equipment asset account. Crediting Accumulated Depreciation allows financial statement users to see both original cost and cumulative usage.
+
+**4. Impact on the Financial Statements**
+
+* **Income Statement:** Depreciation Expense increases operating expenses → **Net Income decreases**.
+* **Statement of Retained Earnings:** Lower Net Income reduces ending **Retained Earnings** in **Shareholders' Equity**.
+* **Statement of Financial Position (Balance Sheet):**
+  * **Equipment (Gross Cost):** Remains at historical acquisition cost.
+  * **Less: Accumulated Depreciation:** Increases with a credit, reducing **Carrying Amount (Net Book Value)**.
+  * **Net Assets:** Decrease by the depreciation amount.
+  * **Shareholders' Equity:** Decreases by the exact same amount via Net Income.
+  * **Equation:** Change in Assets (-$500 via Contra-Asset) = Change in Liabilities ($0) + Change in Shareholders' Equity (-$500). Perfect balance!`
+  },
+  {
+    id: 'faq-depreciation-fs-impact',
+    category: 'Depreciation',
+    question: 'How does depreciation affect the Statement of Financial Position and Net Income?',
+    response: `### How Depreciation Affects Financial Statements
+
+**1. The Dual Impact of Depreciation**
+
+When a depreciation adjusting entry is recorded at the end of an accounting period, it has an immediate, simultaneous impact on both the **Income Statement** and the **Statement of Financial Position**:
+
+**2. Impact on the Income Statement**
+
+* **Depreciation Expense** increases operating expenses for the period.
+* Higher operating expenses directly cause **Operating Income and Net Income to decrease**.
+* Cash is **not affected** — depreciation is a non-cash expense that allocates past cash spent on capital assets.
+
+**3. Impact on the Statement of Financial Position (Balance Sheet)**
+
+* **Gross Asset Cost:** Remains completely unchanged in the **Equipment** or **Building** account to preserve historical cost under IAS 16 / ASPE 3061.
+* **Accumulated Depreciation:** Increases on the credit side as a **contra-asset**.
+* **Carrying Amount (Net Book Value):** Decreases ($Cost - Accumulated Depreciation$). Total assets decrease.
+* **Shareholders' Equity:** Decreases by the exact same dollar amount because lower Net Income reduces ending **Retained Earnings**.
+
+**4. Visual Equation Impact**
+
+$$\\Delta \\text{Assets} (-\\text{Carrying Amount}) = \\Delta \\text{Liabilities} ($0) + \\Delta \\text{Shareholders' Equity} (-\\text{Retained Earnings})$$
+Total Assets and Total Liabilities plus Shareholders' Equity remain in perfect equilibrium.`
+  },
+  {
+    id: 'faq-straight-line-vs-units',
+    category: 'Depreciation',
+    question: 'How do you calculate straight-line depreciation versus units-of-production under IAS 16 / ASPE 3061?',
+    response: `### Straight-Line vs. Units-of-Production Depreciation
+
+**1. Straight-Line Depreciation Formula**
+
+$$\\text{Annual Depreciation Expense} = \\frac{\\text{Cost} - \\text{Estimated Residual Value}}{\\text{Estimated Useful Life in Years}}$$
+
+* **Depreciable Amount:** $\\text{Cost} - \\text{Residual Value}$.
+* Expense is identical for every full year of service.
+* Best suited for assets that decline in utility primarily due to the passage of time (buildings, office furniture).
+
+**2. Units-of-Production (Units-of-Activity) Formula**
+
+$$\\text{Depreciation Rate per Unit} = \\frac{\\text{Cost} - \\text{Estimated Residual Value}}{\\text{Total Estimated Operating Units or Hours}}$$
+$$\\text{Depreciation Expense for Period} = \\text{Units Produced in Period} \\times \\text{Depreciation Rate per Unit}$$
+
+* Expense varies directly with actual usage. In periods of high production, depreciation is higher; in idle periods, depreciation is lower.
+* Best suited for machinery, delivery vehicles (kilometres driven), or mining equipment (operating hours).
+
+**3. Demonstrated Journal Entry**
+
+| Account Name | Debit | Credit |
+| :--- | :--- | :--- |
+| **Depreciation Expense — Vehicles** | $3,200 | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**Accumulated Depreciation — Vehicles** | | $3,200 |
+
+*(To record annual depreciation under straight-line or units-of-production)*`
+  },
+
+  // 5. Inventory
+  {
+    id: 'faq-perpetual-2step',
+    category: 'Inventory',
+    question: 'Explain the 2-step perpetual inventory sales entry under Canadian standards (IFRS / ASPE).',
+    response: `### Perpetual Inventory System & Canadian Standards
+
+**1. The 2-Step Perpetual Sales Entry**
+
+In a perpetual inventory system under Canadian standards, recording a merchandise sale requires **two simultaneous entries**:
+
+* **Entry A (Record Sale to Customer at Retail Price):**
+
+| Account Name | Debit | Credit |
+| :--- | :--- | :--- |
+| **Cash (or Accounts Receivable)** | $1,200 | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**Sales Revenue** | | $1,200 |
+
+*(To record revenue earned from merchandise sale)*
+
+* **Entry B (Record Inventory Outflow & Wholesale Cost):**
+
+| Account Name | Debit | Credit |
+| :--- | :--- | :--- |
+| **Cost of Goods Sold (COGS)** | $700 | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**Merchandise Inventory** | | $700 |
+
+*(To transfer cost of goods sold from asset inventory to operating expense)*
+
+**2. Crucial Canadian Accounting Rule: LIFO is Prohibited!**
+
+Under both **IFRS (IAS 2)** and **ASPE (Section 3031)**, the **Last-In, First-Out (LIFO)** inventory valuation method is **strictly prohibited** in Canada.
+
+* Canadian companies must choose between **FIFO (First-In, First-Out)** or **Weighted Average Cost**.
+* Inventory must be valued at the **Lower of Cost and Net Realizable Value (LCNRV)**.`
+  },
+  {
+    id: 'faq-fifo-vs-weighted-average',
+    category: 'Inventory',
+    question: 'What is the difference between FIFO and Weighted Average cost flow assumptions in a period of inflation?',
+    response: `### FIFO vs. Weighted Average Cost Flow in Inflationary Periods
+
+**1. The Cost Flow Assumptions**
+
+Under Canadian GAAP (**IAS 2 / ASPE 3031**):
+* **FIFO (First-In, First-Out):** Oldest inventory purchase costs are assigned to Cost of Goods Sold; most recent costs remain in Ending Inventory.
+* **Weighted Average Cost:** A weighted average unit cost is computed:
+  $$\\text{Weighted Average Cost per Unit} = \\frac{\\text{Total Cost of Goods Available for Sale}}{\\text{Total Units Available for Sale}}$$
+
+**2. Impact During Rising Prices (Inflation)**
+
+| Financial Metric | FIFO | Weighted Average Cost |
+| :--- | :--- | :--- |
+| **Cost of Goods Sold (COGS)** | **Lower** (uses earlier, cheaper costs) | **Moderate** (blends old and new costs) |
+| **Gross Profit & Net Income** | **Higher** | **Moderate** |
+| **Ending Inventory on Balance Sheet** | **Higher** (reflects current replacement cost) | **Moderate** |
+| **Income Tax Expense** | **Higher** (due to higher taxable income) | **Moderate** |
+
+**3. Consistency Principle**
+
+Once an entity selects FIFO or Weighted Average Cost for a class of inventory, it must apply that method consistently from year to year under IAS 8 / ASPE 1506.`
+  },
+  {
+    id: 'faq-lifo-prohibition',
+    category: 'Inventory',
+    question: 'Why is the LIFO inventory method strictly prohibited in Canada under IAS 2 and ASPE 3031?',
+    response: `### Why LIFO is Strictly Prohibited in Canada
+
+**1. Canadian Accounting Standards Prohibition**
+
+Under both **IFRS (IAS 2 *Inventories*, paragraph 25)** and **ASPE (Section 3031 *Inventories*, paragraph .21)**, the **Last-In, First-Out (LIFO)** cost formula is **strictly prohibited**.
+
+**2. Reasons for the Prohibition**
+
+1. **Unrealistic Economic Flow:** In the vast majority of businesses, physical inventory does not move on a last-in, first-out basis (e.g., grocery, manufacturing, pharmaceuticals).
+2. **Severely Distorted Balance Sheet:** Under LIFO during inflation, ending inventory on the Statement of Financial Position is valued at outdated historical costs dating back years or decades, understating assets and working capital.
+3. **LIFO Liquidation Distortions:** If an entity reduces inventory levels, ancient low costs are matched against current revenues, creating artificial, non-operational profit spikes.
+4. **Canadian Tax Alignment:** The Canada Revenue Agency (CRA) does not permit LIFO for income tax purposes.`
+  },
+  {
+    id: 'faq-lcnrv-rule',
+    category: 'Inventory',
+    question: 'How does the Lower of Cost and Net Realizable Value (LCNRV) rule work, and what is the write-down entry?',
+    response: `### Lower of Cost and Net Realizable Value (LCNRV)
+
+**1. The Accounting Rule (IAS 2 & ASPE 3031)**
+
+Inventory must be carried on the Statement of Financial Position at the **Lower of Cost and Net Realizable Value (LCNRV)**.
+* **Net Realizable Value (NRV):** Estimated selling price in the ordinary course of business less estimated costs of completion and estimated costs necessary to make the sale.
+* When NRV drops below acquisition cost (due to obsolescence, damage, or market price drops), a write-down is mandatory.
+
+**2. Demonstrated Write-Down Journal Entry**
+
+Suppose inventory with a cost of **$15,000** has an NRV of **$11,500** at year-end. A $3,500 write-down is required:
+
+| Account Name | Debit | Credit |
+| :--- | :--- | :--- |
+| **Cost of Goods Sold (or Inventory Write-Down Loss)** | $3,500 | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**Merchandise Inventory** | | $3,500 |
+
+*(To write down inventory from cost of $15,000 to NRV of $11,500)*
+
+**3. Recovery / Reversal of Write-Down**
+
+* **Under IFRS (IAS 2):** If circumstances change and NRV recovers in a subsequent period, the write-down **can be reversed** up to the original cost.
+* **Under ASPE (Section 3031):** Reversals of write-downs are also permitted if NRV recovers.`
+  },
+
+  // 6. Revenue Recognition
+  {
+    id: 'faq-unearned-revenue-debited',
+    category: 'Revenue Recognition',
+    question: 'Why is Unearned Revenue debited when revenue is earned?',
+    response: `### Why Unearned Revenue is Debited When Earned
+
+**1. Underlying Accounting Treatment (Accrual Accounting & Revenue Recognition)**
+
+Under Canadian accounting standards (**IFRS 15** for public enterprises and **ASPE Section 3400** for private enterprises), revenue cannot be recognized when cash is initially received if the performance obligation has not yet been satisfied.
+
+* When the customer originally paid in advance, your company had an outstanding legal obligation to provide services, recorded as a liability in **Unearned Service Revenue**.
+* Once your company actually performs the agreed services, that liability is extinguished (discharged). Under the **revenue recognition principle**, the earnings process is now complete.
+
+**2. Accounts Involved and Classifications**
+
+* **Unearned Service Revenue** (*Current Liability*, Normal Credit Balance): Because your obligation to the customer is now fulfilled, the liability has decreased. Liabilities decrease on the **Debit** side.
+* **Service Revenue** (*Revenue / Shareholders' Equity*, Normal Credit Balance): Because you successfully performed the service, revenue is recognized. Revenues increase on the **Credit** side.
+
+**3. Demonstrated Journal Entry**
+
+| Account Name | Debit | Credit |
+| :--- | :--- | :--- |
+| **Unearned Service Revenue** | $1,000 | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**Service Revenue** | | $1,000 |
+
+*(To record revenue earned and discharge of performance obligation)*
+
+**4. Impact on the Financial Statements**
+
+* **Income Statement:** Service Revenue increases → Operating Income and **Net Income increase**.
+* **Statement of Retained Earnings:** Higher Net Income flows into ending **Retained Earnings**, increasing total **Shareholders' Equity**.
+* **Statement of Financial Position (Balance Sheet):**
+  * **Assets:** Unchanged (cash was collected in an earlier period).
+  * **Liabilities:** Decrease (Unearned Service Revenue liability is extinguished).
+  * **Shareholders' Equity:** Increases by the exact same amount via Net Income.
+  * **Equation:** Change in Assets ($0) = Change in Liabilities (-$1,000) + Change in Shareholders' Equity (+$1,000). The fundamental equation remains balanced!`
+  },
+  {
+    id: 'faq-ifrs15-5steps',
+    category: 'Revenue Recognition',
+    question: 'What is the 5-step revenue recognition model under IFRS 15, and how does it compare to ASPE 3400?',
+    response: `### The 5-Step Revenue Recognition Model (IFRS 15 vs. ASPE 3400)
+
+**1. The 5-Step Core Framework (IFRS 15)**
+
+Under **IFRS 15** *Revenue from Contracts with Customers*, all commercial contracts follow a strict 5-step framework:
+
+* **Step 1: Identify the Contract with a Customer** (commercial substance, rights, collection probable).
+* **Step 2: Identify the Performance Obligations in the Contract** (distinct goods or services promised).
+* **Step 3: Determine the Transaction Price** (fixed price, variable consideration, financing).
+* **Step 4: Allocate the Transaction Price to Performance Obligations** (based on relative standalone selling prices).
+* **Step 5: Recognize Revenue When (or as) the Entity Satisfies a Performance Obligation** (at a point in time or over time as control transfers).
+
+**2. Comparison to ASPE Section 3400**
+
+For Canadian private enterprises under ASPE 3400, revenue is recognized under an earnings approach when:
+1. Significant risks and rewards of ownership have transferred to the buyer.
+2. Reasonable assurance exists regarding measurement of consideration.
+3. Ultimate collection is reasonably assured.`
+  },
+  {
+    id: 'faq-advance-cash-receipt',
+    category: 'Revenue Recognition',
+    question: 'How do you record cash received in advance (customer deposit/retainer) before services are performed?',
+    response: `### Recording Cash Received in Advance (Unearned Revenue)
+
+**1. Underlying Accounting Treatment**
+
+When a client pays cash today for work to be performed in a future period, the business has collected money but has **not yet earned it** under **IFRS 15 / ASPE 3400**.
+
+* Revenue recognition requires fulfilling performance obligations.
+* Collecting cash before delivery creates a legal liability—an obligation to perform services or return the money.
+
+**2. Accounts Involved and Classifications**
+
+* **Cash** (*Current Asset*, Normal Debit Balance): Inflow of liquid funds increases total assets (**Debit**).
+* **Unearned Service Revenue** (*Current Liability*, Normal Credit Balance): Obligation to provide future goods or services increases (**Credit**).
+
+**3. Demonstrated Journal Entry**
+
+| Account Name | Debit | Credit |
+| :--- | :--- | :--- |
+| **Cash** | $2,000 | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**Unearned Service Revenue** | | $2,000 |
+
+*(To record advance cash receipt for future services)*
+
+**4. Financial Statement Impacts**
+
+* **Income Statement:** Zero effect. No revenue has been earned yet.
+* **Statement of Financial Position:** Assets increase (+Cash) and Liabilities increase (+Unearned Revenue) by the identical amount. Shareholders' Equity is unaffected until the service is actually performed.`
+  },
+
+  // 7. Liabilities
+  {
+    id: 'faq-ap-vs-np',
+    category: 'Liabilities',
+    question: 'What is the difference between Accounts Payable and Notes Payable?',
+    response: `### Accounts Payable vs. Notes Payable Explained
+
+**1. Accounts Payable (Trade Credit)**
+
+* **Nature:** Informal short-term obligations arising from everyday purchases of inventory, goods, or operational services on open account.
+* **Documentation & Terms:** Supported by a supplier invoice with standard trade credit terms (e.g., Net 30 days or 2/10, n/30).
+* **Interest:** Does not typically carry explicit interest unless the invoice becomes overdue.
+* **Classification:** Almost always a **Current Liability** on the Statement of Financial Position.
+
+**2. Notes Payable (Promissory Note)**
+
+* **Nature:** Formal written contractual promise to repay a specified principal amount plus interest at a fixed future date.
+* **Documentation & Terms:** Formal legal promissory note specifying the principal, maturity date, and stated annual interest rate.
+* **Interest:** Accumulates interest over time (Principal × Rate × Time), requiring adjusting entries under Canadian standards for **Interest Expense** and **Interest Payable**.
+* **Classification:** Can be a **Current Liability** (if maturing within 12 months) or a **Non-Current (Long-Term) Liability** under Canadian standards.
+
+**3. Comparative Summary**
+
+| Attribute | Accounts Payable | Notes Payable |
+| :--- | :--- | :--- |
+| **Legal Form** | Informal purchase order / supplier invoice | Formal written promissory note |
+| **Explicit Interest** | No (unless past due) | Yes (stated annual rate) |
+| **Typical Term** | 30 to 60 days | 60 days to multiple years |
+| **Year-End Adjustment** | None for interest | Accrue Interest Expense & Interest Payable |`
+  },
+  {
+    id: 'faq-accrued-interest',
+    category: 'Liabilities',
+    question: 'How do you account for accrued interest on a promissory note payable at year-end?',
+    response: `### Accounting for Accrued Interest on Notes Payable
+
+**1. The Interest Formula**
+
+$$\\text{Interest} = \\text{Principal} \\times \\text{Annual Interest Rate} \\times \\text{Fraction of Year}$$
+
+* If a $10,000, 6% note was signed on November 1 with a fiscal year-end of December 31:
+  $$\\text{Accrued Interest} = \\$10,000 \\times 6\\% \\times \\frac{2}{12} = \\$100$$
+
+**2. Demonstrated Year-End Adjusting Entry**
+
+| Account Name | Debit | Credit |
+| :--- | :--- | :--- |
+| **Interest Expense** *(Operating/Financing Expense)* | $100 | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**Interest Payable** *(Current Liability)* | | $100 |
+
+*(To accrue 2 months of interest on note payable as of year-end)*
+
+**3. Entry at Maturity in Subsequent Period**
+
+When the note and interest are paid at maturity, the payment discharges both the principal note and the accrued liability, plus any additional interest incurred in the new year.`
+  },
+  {
+    id: 'faq-bonds-discount-premium',
+    category: 'Liabilities',
+    question: 'How do bonds payable issued at a discount differ from bonds issued at a premium (effective interest method)?',
+    response: `### Bonds Issued at a Discount vs. Premium (Effective Interest Method)
+
+**1. Market Rate vs. Stated (Coupon) Rate**
+
+Under Canadian standards (**IFRS 9** and **ASPE Section 3856**):
+* **Issued at a Discount:** Market Yield Rate > Stated Coupon Rate. Investors pay less than face value because the bond pays below-market interest.
+* **Issued at a Premium:** Market Yield Rate < Stated Coupon Rate. Investors pay more than face value because the bond pays above-market interest.
+* **Issued at Par:** Market Rate = Stated Rate.
+
+**2. Amortization Under the Effective Interest Method**
+
+* **Interest Expense = Beginning Carrying Value × Market Yield Rate.**
+* **Cash Interest Paid = Face Value × Stated Coupon Rate.**
+* **Amortization Difference = |Interest Expense − Cash Paid|.**
+
+| Attribute | Bond Discount | Bond Premium |
+| :--- | :--- | :--- |
+| **Issue Price** | Less than Face Value ($950 for $1,000 bond) | Greater than Face Value ($1,050 for $1,000 bond) |
+| **Carrying Value Over Time** | Increases gradually toward Face Value | Decreases gradually toward Face Value |
+| **Interest Expense vs. Cash Paid** | Interest Expense > Cash Paid | Interest Expense < Cash Paid |`
+  },
+  {
+    id: 'faq-warranties-accounting',
+    category: 'Liabilities',
+    question: 'How are product warranties accounted for under the expense warranty approach (IAS 37 / ASPE 3290)?',
+    response: `### Accounting for Product Warranties (IAS 37 & ASPE 3290)
+
+**1. The Matching Principle & Provisions**
+
+Under Canadian accounting standards (**IAS 37** *Provisions, Contingent Liabilities* under IFRS and **ASPE Section 3290** *Contingencies*), when products are sold with an assurance-type warranty, warranty costs must be estimated and recognized in the **same period the sales revenue is earned**.
+
+**2. Two-Step Warranty Entries**
+
+* **Step 1 — Year-End Accrual Based on Estimated Claims:**
+
+| Account Name | Debit | Credit |
+| :--- | :--- | :--- |
+| **Warranty Expense** *(Operating Expense)* | $4,500 | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**Warranty Liability / Provision** *(Current Liability)* | | $4,500 |
+
+*(To accrue estimated warranty obligations on current period sales)*
+
+* **Step 2 — Settlement of Actual Warranty Claims:**
+
+| Account Name | Debit | Credit |
+| :--- | :--- | :--- |
+| **Warranty Liability / Provision** | $1,200 | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**Parts Inventory (or Cash / Wages Payable)** | | $1,200 |
+
+*(To record actual replacement parts and labour supplied under warranty)*`
+  },
+
+  // 8. Assets
+  {
+    id: 'faq-bank-reconciliation',
+    category: 'Assets',
+    question: 'How do you prepare a bank reconciliation, and which side requires adjusting journal entries?',
+    response: `### How to Prepare a Bank Reconciliation
 
 **1. Purpose & Canadian Accounting Standards**
 
@@ -436,20 +952,13 @@ A proper bank reconciliation has two distinct sections that must arrive at the e
 
 **5. Impact on the Statement of Financial Position**
 
-The final reconciled cash balance is the exact dollar amount reported under **Cash and Cash Equivalents** (Current Assets) on the Statement of Financial Position.`;
-  }
-
-  // C. Bad Debts & Allowance for Doubtful Accounts (IFRS 9 & ASPE 3856)
-  if (
-    q.includes('bad debt') ||
-    q.includes('doubtful') ||
-    q.includes('allowance') ||
-    q.includes('aging') ||
-    q.includes('write-off') ||
-    q.includes('write off') ||
-    q.includes('expected credit loss')
-  ) {
-    return `### Accounting for Bad Debts & Allowance for Doubtful Accounts
+The final reconciled cash balance is the exact dollar amount reported under **Cash and Cash Equivalents** (Current Assets) on the Statement of Financial Position.`
+  },
+  {
+    id: 'faq-bad-debts-allowance',
+    category: 'Assets',
+    question: 'How do you account for bad debts under the allowance method (aging vs. % of sales) under IFRS 9 / ASPE 3856?',
+    response: `### Accounting for Bad Debts & Allowance for Doubtful Accounts
 
 **1. Canadian Accounting Standards (IFRS 9 & ASPE 3856)**
 
@@ -491,205 +1000,82 @@ First reverse the write-off (DR Accounts Receivable, CR Allowance for Doubtful A
 On the Statement of Financial Position:
 * Accounts Receivable (Gross)
 * *Less:* Allowance for Doubtful Accounts
-* **= Accounts Receivable (Net Realizable Value)**`;
-  }
+* **= Accounts Receivable (Net Realizable Value)**`
+  },
+  {
+    id: 'faq-bad-debt-writeoff',
+    category: 'Assets',
+    question: 'What is the journal entry to write off an uncollectible account, and why does it have zero impact on Net Assets?',
+    response: `### The Write-Off of Accounts Receivable & Zero Impact on Net Assets
 
-  // D. Adjusting Entries (Accruals and Deferrals)
-  if (
-    q.includes('adjusting entry') ||
-    q.includes('adjusting entries') ||
-    q.includes('accrual') ||
-    q.includes('deferral')
-  ) {
-    return `### Understanding Adjusting Journal Entries
+**1. Demonstrated Write-Off Journal Entry**
 
-**1. The Purpose of Adjusting Entries**
-
-Under the **accrual basis of accounting** (**IFRS / ASPE**), adjusting entries are made at the end of every accounting period to ensure that revenues are recognized when performance obligations are satisfied and expenses are recognized when incurred.
-
-* **THE CARDINAL RULE:** **Cash is NEVER involved in an adjusting entry!** If cash is changing hands today, it is a routine transaction, not a period-end adjustment.
-
-**2. The Four Primary Categories of Adjusting Entries**
-
-* **1. Accrued Revenues (Asset / Revenue):** Services performed or goods delivered, but not yet billed or collected.
-  * *Entry:* **Debit** Accounts Receivable (or Interest Receivable), **Credit** Service Revenue.
-* **2. Accrued Expenses (Expense / Liability):** Costs incurred during the period, but not yet paid.
-  * *Entry:* **Debit** Operating Expense (e.g., Salaries or Interest Expense), **Credit** Payable (e.g., Salaries Payable or Interest Payable).
-* **3. Deferred Revenues / Unearned (Liability / Revenue):** Cash was collected in advance; portion of service now delivered.
-  * *Entry:* **Debit** Unearned Revenue (liability decreases), **Credit** Service Revenue.
-* **4. Deferred Expenses / Prepaids (Expense / Asset):** Cash was paid in advance; portion of benefit has now expired.
-  * *Entry:* **Debit** Operating Expense (e.g., Insurance Expense, Supplies Expense, Depreciation), **Credit** Prepaid Asset or Contra-Asset.
-
-**3. Impact of Omitting Adjusting Entries**
-
-If period-end adjusting entries are omitted:
-* Omitting an accrued expense understates liabilities and overstates Net Income.
-* Omitting depreciation overstates assets and overstates Net Income.
-* Omitting unearned revenue earned overstates liabilities and understates Net Income.`;
-  }
-
-  // E. Inventory Costing Methods (FIFO vs Weighted Average vs LIFO)
-  if (
-    q.includes('fifo') ||
-    q.includes('weighted average') ||
-    q.includes('cost of goods sold') ||
-    q.includes('cogs') ||
-    (q.includes('inventory') && (q.includes('method') || q.includes('costing') || q.includes('valuation') || q.includes('lcnrv')))
-  ) {
-    return `### Inventory Costing Methods (FIFO vs. Weighted Average under Canadian GAAP)
-
-**1. Canadian Accounting Standards (IAS 2 & ASPE 3031)**
-
-Under Canadian standards (**IFRS IAS 2** and **ASPE Section 3031**), two cost flow assumptions are permitted for interchangeable inventory items:
-* **1. First-In, First-Out (FIFO):** Assumes the earliest purchased units are sold first. Ending inventory consists of the most recent purchase costs.
-* **2. Weighted Average Cost:** Computes an average cost per unit by dividing total cost of goods available for sale by total units available for sale.
-
-* **CRITICAL CANADIAN REGULATION:** **LIFO (Last-In, First-Out) is strictly PROHIBITED** in Canada under both IFRS and ASPE!
-
-**2. Economic Comparison in a Period of Rising Prices (Inflation)**
-
-| Attribute | FIFO | Weighted Average |
-| :--- | :--- | :--- |
-| **Cost of Goods Sold (COGS)** | Lower (uses older, cheaper costs) | Moderate (blends old and new costs) |
-| **Gross Profit & Net Income** | Higher | Moderate |
-| **Ending Inventory on Balance Sheet** | Higher (reflects current replacement costs) | Moderate |
-
-**3. Lower of Cost and Net Realizable Value (LCNRV)**
-
-Under IAS 2 and ASPE 3031, inventory must be carried at the **Lower of Cost and Net Realizable Value (LCNRV)**.
-* **Net Realizable Value (NRV):** Estimated selling price in the ordinary course of business less estimated completion and selling costs.
-* If NRV falls below carrying cost, a write-down entry is required:
-  * **Debit:** Cost of Goods Sold (or Inventory Write-Down Loss)
-  * **Credit:** Merchandise Inventory
-
-**4. Demonstrated Sales Entry (Perpetual Inventory)**
+When a specific customer account is determined to be uncollectible (e.g., customer declared bankruptcy):
 
 | Account Name | Debit | Credit |
 | :--- | :--- | :--- |
-| **Accounts Receivable (or Cash)** | $1,500 | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**Sales Revenue** | | $1,500 |
-| **Cost of Goods Sold** | $900 | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**Merchandise Inventory** | | $900 |
+| **Allowance for Doubtful Accounts** *(Contra-Asset)* | $850 | |
+| &nbsp;&nbsp;&nbsp;&nbsp;**Accounts Receivable — Customer** *(Current Asset)* | | $850 |
 
-*(To record sale and inventory cost under FIFO / Weighted Average)*`;
-  }
+*(To write off specific uncollectible customer account)*
 
-  // F. Trial Balance & Error Detection
-  if (q.includes('trial balance')) {
-    return `### The Trial Balance: Role, Preparation, and Error Limitations
+**2. Why Net Assets and Net Income Are Completely Unaffected**
 
-**1. What is a Trial Balance?**
+Students frequently assume writing off an account creates an expense. It does not!
+* The expense was already recognized in an earlier period via the estimating adjusting entry (**DR Bad Debt Expense, CR Allowance**).
+* In the write-off:
+  * Accounts Receivable (Gross Assets) decreases by $850.
+  * Allowance for Doubtful Accounts (Contra-Asset) decreases by $850.
+  * **Net Accounts Receivable (Gross − Allowance) remains exactly identical!**
+  * Assets = Liabilities + Equity remains completely unchanged.`
+  },
+  {
+    id: 'faq-rd-intangibles',
+    category: 'Assets',
+    question: 'How are research and development costs accounted for under IAS 38 vs. ASPE 3064 for intangible assets?',
+    response: `### Research and Development Costs: IAS 38 vs. ASPE 3064
 
-A trial balance is an internal accounting schedule listing all active general ledger accounts with their debit or credit balances at a specific point in time.
-* **Primary Objective:** To mathematically verify that total debits equal total credits after journalizing and posting.
+**1. Research Phase vs. Development Phase**
 
-**2. Three Stages of Trial Balances in the Accounting Cycle**
+Under both IFRS (**IAS 38** *Intangible Assets*) and ASPE (**Section 3064** *Goodwill and Intangible Assets*):
+* **Research Phase:** Original and planned investigation to gain new scientific knowledge. **All research costs must be EXPENSED immediately as incurred.**
+* **Development Phase:** Application of research findings to a plan for commercial production before commercial use.
 
-* **1. Unadjusted Trial Balance:** Prepared directly after posting routine daily transactions.
-* **2. Adjusted Trial Balance:** Prepared after all period-end adjusting entries have been journalized and posted. This trial balance is the primary source used to draft the formal financial statements.
-* **3. Post-Closing Trial Balance:** Prepared after closing entries have zeroed out temporary accounts (Revenues, Expenses, Dividends). It contains **only permanent balance sheet accounts** (Assets, Liabilities, Equity).
+**2. IFRS vs. ASPE Key Difference**
 
-**3. Types of Errors a Trial Balance DOES Catch**
+* **IFRS (IAS 38):** Development costs **MUST be capitalized** as an intangible asset if all 6 criteria are met (Technical feasibility, Intention to complete, Ability to use/sell, Probable future economic benefits, Adequate resources available, Reliable cost measurement).
+* **ASPE (Section 3064):** An enterprise has an **accounting policy choice**: it may choose to expense all internal development costs as incurred, OR capitalize development costs that meet the 6 criteria.`
+  },
 
-* Transposition error posted to only one account.
-* A journal entry posted with unequal debit and credit amounts.
-* An entry entered on the wrong side of a ledger account.
+  // 9. Standards
+  {
+    id: 'faq-ifrs-vs-aspe',
+    category: 'Standards',
+    question: 'What are the core differences between IFRS (Part I) and ASPE (Part II) in the CPA Canada Handbook?',
+    response: `### Core Differences: IFRS vs. ASPE in Canada
 
-**4. Types of Errors a Trial Balance CANNOT Catch**
+**1. The Canadian Financial Reporting Dual Framework**
 
-Even when debits equal credits, serious accounting errors may exist:
-* **Complete Omission:** A transaction was never recorded in the journal.
-* **Wrong Account:** A debit was posted to Supplies instead of Equipment (both are assets, so equality holds).
-* **Compensating Errors:** An error of +$100 on one debit offset by an error of +$100 on an unrelated credit.
-* **Duplicate Recording:** A transaction was entered twice.`;
-  }
+In Canada, standard setters established a dual reporting framework:
+* **Part I — IFRS (International Financial Reporting Standards):** Mandatory for publicly accountable enterprises (listed on TSX, securities commissions) and large financial institutions.
+* **Part II — ASPE (Accounting Standards for Private Enterprises):** Developed specifically for Canadian privately held businesses to reduce compliance costs while meeting bank/lender needs.
 
-  // G. Closing Entries & Retained Earnings
-  if (
-    q.includes('closing') ||
-    q.includes('temporary account') ||
-    q.includes('permanent account') ||
-    q.includes('income summary')
-  ) {
-    return `### The Closing Process & Retained Earnings
+**2. Key Technical Differences**
 
-**1. Temporary vs. Permanent Accounts**
-
-Under Canadian accounting standards (**IFRS / ASPE**):
-* **Temporary (Nominal) Accounts:** Track activity for a single accounting period. At period-end, they must be closed to a zero balance so the next period starts fresh.
-  * Includes: **Revenues**, **Expenses**, and **Dividends**.
-* **Permanent (Real) Accounts:** Balances carry forward cumulatively into the next accounting period.
-  * Includes: **Assets**, **Liabilities**, and **Shareholders' Equity** (Common Shares, Retained Earnings).
-
-**2. The 4-Step Closing Process**
-
-* **Step 1: Close Revenues to Income Summary**
-  * **Debit:** All Revenue accounts (to zero their credit balances).
-  * **Credit:** Income Summary.
-* **Step 2: Close Expenses to Income Summary**
-  * **Debit:** Income Summary (total expenses).
-  * **Credit:** All Expense accounts (to zero their debit balances).
-* **Step 3: Close Income Summary to Retained Earnings**
-  * If Net Income: **Debit** Income Summary, **Credit** Retained Earnings.
-  * If Net Loss: **Debit** Retained Earnings, **Credit** Income Summary.
-* **Step 4: Close Dividends to Retained Earnings**
-  * **Debit:** Retained Earnings.
-  * **Credit:** Dividends (to zero out its debit balance).
-
-**3. Demonstrated Closing Entry (Alternative Direct to Retained Earnings)**
-
-| Account Name | Debit | Credit |
+| Accounting Area | IFRS (Part I) | ASPE (Part II) |
 | :--- | :--- | :--- |
-| **Sales Revenue** | $40,000 | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**Operating Expenses (various)** | | $28,000 |
-| &nbsp;&nbsp;&nbsp;&nbsp;**Retained Earnings (Net Income plug)** | | $12,000 |
-
-*(To close revenues and expenses directly into Retained Earnings)*`;
-  }
-
-  // H. Revenue Recognition 5-Step Model (IFRS 15 / ASPE 3400)
-  if (
-    q.includes('revenue recognition') ||
-    q.includes('ifrs 15') ||
-    q.includes('aspe 3400') ||
-    q.includes('5-step') ||
-    q.includes('five-step') ||
-    q.includes('performance obligation')
-  ) {
-    return `### Revenue Recognition Under IFRS 15 & ASPE 3400
-
-**1. The 5-Step Revenue Recognition Model (IFRS 15)**
-
-Under **IFRS 15** *Revenue from Contracts with Customers*, all commercial contracts follow a strict 5-step framework:
-
-* **Step 1: Identify the Contract with a Customer** (enforceable rights, commercial substance, collection is probable).
-* **Step 2: Identify the Performance Obligations in the Contract** (promises to transfer distinct goods or services).
-* **Step 3: Determine the Transaction Price** (consider fixed price, variable consideration, financing components).
-* **Step 4: Allocate the Transaction Price to Performance Obligations** (based on relative standalone selling prices).
-* **Step 5: Recognize Revenue When (or as) the Entity Satisfies a Performance Obligation** (at a point in time or over time as control transfers).
-
-**2. ASPE Section 3400 Comparison**
-
-For Canadian private enterprises under ASPE 3400, revenue is recognized when:
-* Risks and rewards of ownership have transferred to the buyer.
-* Reasonable assurance exists regarding measurement of consideration.
-* Ultimate collection is reasonably assured.
-
-**3. Core Journal Entries**
-
-* When customer pays in advance: **DR Cash, CR Unearned Revenue** (liability).
-* When performance obligation is satisfied: **DR Unearned Revenue, CR Revenue**.`;
-  }
-
-  // I. Lease Accounting (IFRS 16 vs ASPE 3065)
-  if (
-    q.includes('lease') ||
-    q.includes('ifrs 16') ||
-    q.includes('right-of-use') ||
-    q.includes('right of use') ||
-    q.includes('aspe 3065')
-  ) {
-    return `### Lease Accounting: IFRS 16 vs. ASPE 3065
+| **Lease Accounting (Lessees)** | IFRS 16: Single on-balance sheet model (ROU Asset & Lease Liability for all leases > 12 mos) | ASPE 3065: Dual model (Operating Lease vs. Capital Lease) |
+| **PPE Valuation** | Cost model OR Revaluation model (fair value) | Cost model only |
+| **Development Costs** | Mandatory capitalization if 6 criteria met | Policy choice: capitalize or expense |
+| **Joint Arrangements** | Classified as Joint Operations or Joint Ventures (equity method only) | Choice of cost method, equity method, or proportionate consolidation |
+| **Income Taxes** | Future income taxes (Balance Sheet liability method) | Choice between taxes payable method or future income taxes method |
+| **LIFO Inventory** | **Prohibited** | **Prohibited** |`
+  },
+  {
+    id: 'faq-lease-accounting',
+    category: 'Standards',
+    question: 'How does lease accounting for lessees differ between IFRS 16 (Right-of-Use Asset) and ASPE 3065?',
+    response: `### Lease Accounting: IFRS 16 vs. ASPE 3065
 
 **1. The Fundamental Difference Between IFRS and ASPE**
 
@@ -708,44 +1094,75 @@ For Canadian private enterprises under ASPE 3400, revenue is recognized when:
 | **Right-of-Use Asset** | $120,000 | |
 | &nbsp;&nbsp;&nbsp;&nbsp;**Lease Liability** | | $120,000 |
 
-*(To record initial recognition of lease asset and liability at present value)*`;
+*(To record initial recognition of lease asset and liability at present value)*`
+  }
+];
+
+/**
+ * Intelligent Canadian Accounting Fallback Engine.
+ * If external AI services are unreachable, experiencing high demand (503), or timing out,
+ * this engine generates an in-depth, specific, educational answer tailored to the student's exact question.
+ */
+export function generateEducationalExplanation(context: TutorContext): string {
+  const rawQ = (context.question || '').trim();
+  const q = rawQ.toLowerCase();
+
+  // 1. Check exact match in ACCOUNTING_FAQS by id or question text
+  const exactFaq = ACCOUNTING_FAQS.find(
+    f => f.id === rawQ || f.question.toLowerCase() === q
+  );
+  if (exactFaq) {
+    return exactFaq.response;
   }
 
-  // J. Rules of Debits and Credits & Normal Balances
-  if (
-    q.includes('debit') ||
-    q.includes('credit') ||
-    q.includes('normal balance') ||
-    q.includes('dealer')
-  ) {
-    return `### Rules of Debits and Credits & Normal Balances
-
-**1. The DEALER Framework**
-
-The easiest way to master debits and credits under Canadian accounting standards is the **DEALER** acronym:
-
-| Letter | Category | Normal Balance | To Increase | To Decrease |
-| :--- | :--- | :--- | :--- | :--- |
-| **D** | **Dividends** | **Debit** | Debit | Credit |
-| **E** | **Expenses** | **Debit** | Debit | Credit |
-| **A** | **Assets** | **Debit** | Debit | Credit |
-| **L** | **Liabilities** | **Credit** | Credit | Debit |
-| **E** | **Equity (Common Shares / Retained Earnings)** | **Credit** | Credit | Debit |
-| **R** | **Revenues** | **Credit** | Credit | Debit |
-
-**2. The Fundamental Accounting Equation**
-
-$$\\text{Assets} = \\text{Liabilities} + \\text{Shareholders' Equity}$$
-
-* **Debit:** Simply means the **left side** of an account.
-* **Credit:** Simply means the **right side** of an account.
-* Every transaction must have at least one debit and one credit, and the total dollar amount of debits must **always equal** total credits.`;
+  // 2. Check fuzzy match in ACCOUNTING_FAQS (if question is a substring of an FAQ or vice versa)
+  const fuzzyFaq = ACCOUNTING_FAQS.find(f => {
+    const fq = f.question.toLowerCase();
+    return q.includes(fq) || fq.includes(q);
+  });
+  if (fuzzyFaq) {
+    return fuzzyFaq.response;
   }
 
-  // =========================================================================
-  // 3. CONTEXTUAL TUTORING FOR ACTIVE PRACTICE QUESTIONS
-  // If the student opened the tutor from a specific practice question scenario
-  // =========================================================================
+  // 3. Keyword-based matching to appropriate FAQ
+  if (q.includes('diminishing') || q.includes('declining') || q.includes('ddb')) {
+    return ACCOUNTING_FAQS.find(f => f.id === 'faq-diminishing-balance')!.response;
+  }
+  if (q.includes('bank rec') || q.includes('reconciliation')) {
+    return ACCOUNTING_FAQS.find(f => f.id === 'faq-bank-reconciliation')!.response;
+  }
+  if (q.includes('contra-asset') || q.includes('contra asset') || q.includes('accumulated depreciation')) {
+    return ACCOUNTING_FAQS.find(f => f.id === 'faq-accumulated-depreciation')!.response;
+  }
+  if (q.includes('unearned') && q.includes('debit')) {
+    return ACCOUNTING_FAQS.find(f => f.id === 'faq-unearned-revenue-debited')!.response;
+  }
+  if (q.includes('bad debt') || q.includes('doubtful') || q.includes('allowance')) {
+    return ACCOUNTING_FAQS.find(f => f.id === 'faq-bad-debts-allowance')!.response;
+  }
+  if (q.includes('fifo') || q.includes('weighted average')) {
+    return ACCOUNTING_FAQS.find(f => f.id === 'faq-fifo-vs-weighted-average')!.response;
+  }
+  if (q.includes('lifo')) {
+    return ACCOUNTING_FAQS.find(f => f.id === 'faq-lifo-prohibition')!.response;
+  }
+  if (q.includes('trial balance')) {
+    return ACCOUNTING_FAQS.find(f => f.id === 'faq-trial-balance-stages')!.response;
+  }
+  if (q.includes('adjusting entry') || q.includes('accrual') || q.includes('deferral')) {
+    return ACCOUNTING_FAQS.find(f => f.id === 'faq-accruals-vs-deferrals')!.response;
+  }
+  if (q.includes('bond') || q.includes('discount') || q.includes('premium')) {
+    return ACCOUNTING_FAQS.find(f => f.id === 'faq-bonds-discount-premium')!.response;
+  }
+  if (q.includes('lease') || q.includes('ifrs 16') || q.includes('right-of-use')) {
+    return ACCOUNTING_FAQS.find(f => f.id === 'faq-lease-accounting')!.response;
+  }
+  if (q.includes('ifrs 15') || q.includes('5-step') || q.includes('five-step')) {
+    return ACCOUNTING_FAQS.find(f => f.id === 'faq-ifrs15-5steps')!.response;
+  }
+
+  // 4. Context-aware fallback if opened from practice question
   if (context.scenarioTitle && context.scenarioNarrative) {
     return `### Conceptual Analysis for "${context.scenarioTitle}"
 
@@ -776,43 +1193,6 @@ $$\\Delta \\text{Assets} = \\Delta \\text{Liabilities} + \\Delta \\text{Sharehol
 * **Statement of Financial Position:** Liquid assets, operational liabilities, and ending equity adjust simultaneously.`;
   }
 
-  // =========================================================================
-  // 4. COMPREHENSIVE GENERAL TUTORING SYNTHESIS
-  // Dynamic educational answer addressing the student's specific custom query
-  // =========================================================================
-  const capitalizedQuestion = rawQ ? rawQ.charAt(0).toUpperCase() + rawQ.slice(1) : 'Accounting Principles';
-
-  return `### Accounting Analysis: ${capitalizedQuestion}
-
-**1. Underlying Accounting Principles & Canadian Standards (IFRS & ASPE)**
-
-Under Canadian accounting standards (Part I IFRS for publicly accountable entities and Part II ASPE for private enterprises), financial accounting is governed by core conceptual frameworks:
-* **Accrual Basis of Accounting:** Transactions are recorded in the accounting periods in which the events occur, rather than when cash is transferred.
-* **Revenue Recognition Principle (IFRS 15 / ASPE 3400):** Revenue is recognized when performance obligations are satisfied by transferring control of promised goods or services.
-* **Cost Allocation & Matching Principle (IAS 16 / ASPE 3061):** Expenses must be matched against the revenues they helped generate, or allocated systematically over the periods that receive economic benefits.
-
-**2. Determining the Proper Journal Entry**
-
-To record any transaction correctly:
-1. **Identify the Accounts:** Determine which specific accounts are affected (e.g., Cash, Accounts Receivable, Inventory, Equipment, Accounts Payable, Unearned Revenue, Common Shares, Service Revenue, or Operating Expenses).
-2. **Classify Each Account:** Determine whether each account is an Asset, Liability, Shareholders' Equity, Revenue, or Expense.
-3. **Determine Direction of Change:** Determine whether each account is increasing or decreasing based on economic reality.
-4. **Apply Debit/Credit Rules:**
-   * Assets, Expenses, and Dividends increase with a **Debit**.
-   * Liabilities, Common Shares, Retained Earnings, and Revenues increase with a **Credit**.
-
-**3. Demonstrated Standard Entry Structure**
-
-| Account Name | Debit | Credit |
-| :--- | :--- | :--- |
-| **Account to Increase (Asset / Expense) or Decrease (Liability)** | $Amount | |
-| &nbsp;&nbsp;&nbsp;&nbsp;**Account to Increase (Liability / Revenue / Equity) or Decrease (Asset)** | | $Amount |
-
-**4. Financial Statement Equilibrium**
-
-Every valid transaction preserves the fundamental Canadian accounting equation:
-$$\\text{Assets} = \\text{Liabilities} + \\text{Shareholders' Equity}$$
-* Revenues and expenses flow into Net Income on the **Income Statement**.
-* Net Income transfers into ending Retained Earnings within **Shareholders' Equity**.
-* The **Statement of Financial Position (Balance Sheet)** remains in exact balance.`;
+  // 5. Default accounting principle response
+  return ACCOUNTING_FAQS[0].response;
 }

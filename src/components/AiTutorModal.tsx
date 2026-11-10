@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, Send, BookOpen, HelpCircle } from 'lucide-react';
+import { X, Sparkles, BookOpen, HelpCircle } from 'lucide-react';
 import { AccountingScenario, JournalEntryLine } from '../types/accounting';
-import { generateEducationalExplanation } from '../utils/tutorEngine';
+import { generateEducationalExplanation, ACCOUNTING_FAQS, TutorFaq } from '../utils/tutorEngine';
 
 interface AiTutorModalProps {
   isOpen: boolean;
@@ -11,15 +11,18 @@ interface AiTutorModalProps {
   contextCorrectLines?: any;
 }
 
-const QUICK_PROMPTS = [
-  'Why is Unearned Revenue debited when revenue is earned?',
-  'Why is Accumulated Depreciation a credit balance contra-asset instead of crediting Equipment directly?',
-  'How do Common Shares work under Canadian corporate law (CBCA/OBCA)?',
-  'Why do expenses have a normal debit balance if they decrease Shareholders\' Equity?',
-  'What is the difference between Accounts Payable and Notes Payable?',
-  'How does depreciation affect the Statement of Financial Position and Net Income?',
-  'Explain the 2-step perpetual inventory sales entry under Canadian standards (IFRS / ASPE)'
-];
+const FAQ_CATEGORIES = [
+  'All',
+  'Journal Entries',
+  'Adjusting Entries',
+  'Financial Statements',
+  'Depreciation',
+  'Inventory',
+  'Revenue Recognition',
+  'Liabilities',
+  'Assets',
+  'Standards'
+] as const;
 
 // Helper to convert inline markdown and symbols
 function renderInlineFormatting(text: string): string {
@@ -356,19 +359,25 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
   contextUserLines,
   contextCorrectLines
 }) => {
-  const [question, setQuestion] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [activeFaqId, setActiveFaqId] = useState<string | null>(null);
+  const [activeQuestionTitle, setActiveQuestionTitle] = useState<string>('');
   const [response, setResponse] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Set initial default prompt if contextScenario is provided
+  // Set initial FAQ or context scenario explanation when modal opens
   useEffect(() => {
+    if (!isOpen) return;
+
     if (contextScenario) {
-      setQuestion(`Can you explain why the journal entry for "${contextScenario.title}" uses these accounts and debits/credits?`);
+      handleSelectCurrentScenario();
     } else {
-      setQuestion('');
+      const defaultFaq = ACCOUNTING_FAQS[0];
+      if (defaultFaq) {
+        handleSelectFaq(defaultFaq);
+      }
     }
-    setResponse(null);
-  }, [contextScenario, isOpen]);
+  }, [isOpen, contextScenario]);
 
   // Handle escape key
   useEffect(() => {
@@ -383,15 +392,14 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleAsk = async (queryText?: string) => {
-    const q = (queryText || question).trim();
-    if (!q) return;
-
+  const handleSelectFaq = async (faq: TutorFaq) => {
+    setActiveFaqId(faq.id);
+    setActiveQuestionTitle(faq.question);
     setIsLoading(true);
     setResponse(null);
 
     const payload = {
-      question: q,
+      question: faq.question,
       scenarioTitle: contextScenario?.title,
       scenarioNarrative: contextScenario?.narrative,
       scenarioTopic: contextScenario?.topic,
@@ -417,9 +425,51 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
       } else {
         throw new Error('Empty reply in response');
       }
-    } catch (err: any) {
-      console.warn('Network or server error in AI Tutor, invoking educational accounting engine:', err);
-      // Generate educational explanation client-side
+    } catch {
+      // Direct high-fidelity response from our curated Canadian accounting engine
+      const reply = faq.response || generateEducationalExplanation(payload);
+      setResponse(reply);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSelectCurrentScenario = async () => {
+    if (!contextScenario) return;
+    const promptText = `Can you explain why the journal entry for "${contextScenario.title}" uses these accounts and debits/credits?`;
+    setActiveFaqId('context-scenario');
+    setActiveQuestionTitle(promptText);
+    setIsLoading(true);
+    setResponse(null);
+
+    const payload = {
+      question: promptText,
+      scenarioTitle: contextScenario.title,
+      scenarioNarrative: contextScenario.narrative,
+      scenarioTopic: contextScenario.topic,
+      companyName: contextScenario.companyName,
+      userEntry: contextUserLines,
+      correctEntry: contextCorrectLines
+    };
+
+    try {
+      const res = await fetch('/api/ai-tutor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok || !res.headers.get('content-type')?.includes('application/json')) {
+        throw new Error(`Server returned non-JSON or status ${res.status}`);
+      }
+
+      const data = await res.json();
+      if (data && data.reply) {
+        setResponse(data.reply);
+      } else {
+        throw new Error('Empty reply in response');
+      }
+    } catch {
       const fallbackReply = generateEducationalExplanation(payload);
       setResponse(fallbackReply);
     } finally {
@@ -427,10 +477,14 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
     }
   };
 
+  const filteredFaqs = selectedCategory === 'All'
+    ? ACCOUNTING_FAQS
+    : ACCOUNTING_FAQS.filter(f => f.category === selectedCategory);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
       <div 
-        className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in duration-200"
+        className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in duration-200"
         role="dialog"
         aria-modal="true"
         aria-labelledby="tutor-modal-title"
@@ -438,7 +492,7 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
         {/* Modal Header */}
         <div className="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-300 flex items-center justify-center border border-indigo-400/30">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-300 flex items-center justify-center border border-indigo-400/30 shrink-0">
               <Sparkles className="w-4 h-4 text-indigo-300" />
             </div>
             <div>
@@ -453,7 +507,7 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
             aria-label="Close dialog"
           >
             <X className="w-5 h-5" />
@@ -461,69 +515,87 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <div className="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1">
-          {/* Scenario context chip if present */}
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1">
+          {/* Active Scenario Context Banner */}
           {contextScenario && (
-            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-700 flex items-start gap-2">
-              <BookOpen className="w-4 h-4 text-indigo-600 mt-0.5 shrink-0" />
-              <div>
-                <span className="font-bold text-slate-900">Current Context:</span> {contextScenario.title} ({contextScenario.topic})
-                <p className="text-slate-500 text-[11px] mt-0.5 line-clamp-2">{contextScenario.narrative}</p>
+            <div className="p-3 bg-indigo-50/70 rounded-xl border border-indigo-200 text-xs text-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="flex items-start gap-2">
+                <BookOpen className="w-4 h-4 text-indigo-600 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-bold text-indigo-950">Active Practice Scenario:</span> {contextScenario.title}
+                  <span className="text-slate-500 text-[11px] block sm:inline sm:ml-2">({contextScenario.topic})</span>
+                </div>
               </div>
+              <button
+                onClick={handleSelectCurrentScenario}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg shrink-0 transition-colors cursor-pointer ${
+                  activeFaqId === 'context-scenario'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'bg-white hover:bg-indigo-100/70 text-indigo-700 border border-indigo-300'
+                }`}
+              >
+                Explain Current Scenario
+              </button>
             </div>
           )}
 
-          {/* Quick Questions Chips */}
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1">
-              <HelpCircle className="w-3.5 h-3.5" />
-              Frequently Asked Canadian Accounting Questions
+          {/* FAQ Navigation & Category Filters */}
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <HelpCircle className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Frequently Asked Accounting Questions ({ACCOUNTING_FAQS.length} curated topics)</span>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {QUICK_PROMPTS.map((prompt, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    setQuestion(prompt);
-                    handleAsk(prompt);
-                  }}
-                  className="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 border border-slate-200 text-slate-700 transition-colors cursor-pointer text-left"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
-          </div>
 
-          {/* Question Input */}
-          <div className="space-y-2">
-            <label htmlFor="tutor-question" className="block text-xs font-semibold text-slate-700">
-              Ask your question:
-            </label>
-            <div className="flex gap-2">
-              <input
-                id="tutor-question"
-                type="text"
-                placeholder="e.g., Why do we debit unearned revenue when revenue is earned?"
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleAsk();
-                }}
-                className="flex-1 px-3.5 py-2 text-xs sm:text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <button
-                onClick={() => handleAsk()}
-                disabled={isLoading || !question.trim()}
-                className={`px-4 py-2 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
-                  isLoading || !question.trim()
-                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                    : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
-                }`}
-              >
-                <span>{isLoading ? 'Thinking...' : 'Ask'}</span>
-                <Send className="w-3.5 h-3.5" />
-              </button>
+            {/* Category Filter Tabs */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+              {FAQ_CATEGORIES.map(category => {
+                const count = category === 'All'
+                  ? ACCOUNTING_FAQS.length
+                  : ACCOUNTING_FAQS.filter(f => f.category === category).length;
+                const isSelected = selectedCategory === category;
+
+                return (
+                  <button
+                    key={category}
+                    onClick={() => setSelectedCategory(category)}
+                    className={`px-2.5 py-1 text-xs rounded-full whitespace-nowrap font-medium transition-colors cursor-pointer ${
+                      isSelected
+                        ? 'bg-indigo-600 text-white font-semibold shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {category} <span className={`text-[10px] ml-0.5 ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`}>({count})</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Questions List */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-0.5 scrollbar-thin">
+              {filteredFaqs.map(faq => {
+                const isSelected = activeFaqId === faq.id;
+
+                return (
+                  <button
+                    key={faq.id}
+                    onClick={() => handleSelectFaq(faq)}
+                    className={`text-left p-2.5 rounded-xl border text-xs transition-all flex items-start gap-2 cursor-pointer ${
+                      isSelected
+                        ? 'bg-indigo-50 border-indigo-400 text-indigo-950 font-medium ring-1 ring-indigo-400/30'
+                        : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+                    }`}
+                  >
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 mt-0.5 uppercase tracking-wider ${
+                      isSelected ? 'bg-indigo-200 text-indigo-800' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {faq.category}
+                    </span>
+                    <span className="flex-1 leading-snug line-clamp-2">{faq.question}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -531,15 +603,20 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
           {isLoading && (
             <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 text-center text-slate-500 text-xs sm:text-sm space-y-2">
               <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-              <p>Analyzing accounting standards & preparing Canadian pedagogical explanation...</p>
+              <p>Retrieving Canadian accounting standard breakdown...</p>
             </div>
           )}
 
           {response && !isLoading && (
             <div className="p-4 sm:p-5 bg-indigo-50/40 rounded-xl border border-indigo-100/80 text-xs sm:text-sm text-slate-800 leading-relaxed space-y-3 animate-in fade-in">
-              <div className="font-bold text-indigo-950 flex items-center gap-1.5 text-xs uppercase tracking-wider border-b border-indigo-100 pb-2">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                Accounting Professor Explanation:
+              <div className="border-b border-indigo-100 pb-2.5">
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-700 uppercase tracking-wider mb-1">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Canadian Accounting Professor Explanation</span>
+                </div>
+                <h4 className="font-bold text-sm sm:text-base text-slate-900 leading-snug">
+                  {activeQuestionTitle}
+                </h4>
               </div>
               <FormattedExplanation content={response} />
             </div>
