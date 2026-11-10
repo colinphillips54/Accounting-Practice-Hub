@@ -1,0 +1,562 @@
+import React, { useState, useEffect } from 'react';
+import { X, Sparkles, Send, BookOpen, HelpCircle } from 'lucide-react';
+import { AccountingScenario, JournalEntryLine } from '../types/accounting';
+import { generateEducationalExplanation } from '../utils/tutorEngine';
+
+interface AiTutorModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  contextScenario?: AccountingScenario | null;
+  contextUserLines?: JournalEntryLine[];
+  contextCorrectLines?: any;
+}
+
+const QUICK_PROMPTS = [
+  'Why is Unearned Revenue debited when revenue is earned?',
+  'Why is Accumulated Depreciation a credit balance contra-asset instead of crediting Equipment directly?',
+  'How do Common Shares work under Canadian corporate law (CBCA/OBCA)?',
+  'Why do expenses have a normal debit balance if they decrease Shareholders\' Equity?',
+  'What is the difference between Accounts Payable and Notes Payable?',
+  'How does depreciation affect the Statement of Financial Position and Net Income?',
+  'Explain the 2-step perpetual inventory sales entry under Canadian standards (IFRS / ASPE)'
+];
+
+// Helper to convert inline markdown and symbols
+function renderInlineFormatting(text: string): string {
+  let formatted = text
+    // Normalize LaTeX and symbol arrows
+    .replace(/\\right\s*arrow/gi, '→')
+    .replace(/\\rightarrow/gi, '→')
+    .replace(/\\to\b/gi, '→')
+    .replace(/\\longrightarrow/gi, '→')
+    .replace(/\\Rightarrow/gi, '⇒')
+    .replace(/-->/g, '→')
+    .replace(/(^|\s)->(\s|$)/g, '$1→$2')
+    .replace(/\\leftarrow/gi, '←')
+    .replace(/\\Delta\b/gi, 'Δ')
+    .replace(/\\times\b/gi, '×')
+    .replace(/\\div\b/gi, '÷')
+    .replace(/\\approx\b/gi, '≈')
+    .replace(/\\mathbf\{([^}]+)\}/g, '$1')
+    .replace(/\\text\{([^}]+)\}/g, '$1')
+    .replace(/'''[a-z]*/gi, '')
+    .replace(/'''/g, '');
+
+  // Strip math delimiters around words while preserving currency amounts like $1,000 or $30,000
+  formatted = formatted.replace(/\$([A-Za-z][^\$]*?)\$/g, '$1');
+
+  // Convert **bold**
+  formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-slate-950">$1</strong>');
+  
+  // Convert *italic*
+  formatted = formatted.replace(/(^|[^*])\*([^*]+)\*([^*]|$)/g, '$1<em class="italic text-slate-800">$2</em>$3');
+
+  // Style arrow symbol
+  formatted = formatted.replace(/→/g, '<span class="inline-flex items-center text-indigo-600 font-bold mx-1">→</span>');
+
+  return formatted;
+}
+
+// Helper to parse markdown table
+function parseMarkdownTable(tableText: string): { headers: string[]; rows: string[][] } | null {
+  const lines = tableText
+    .trim()
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l.startsWith('|') && l.endsWith('|'));
+
+  if (lines.length < 2) return null;
+
+  const parseRow = (line: string) =>
+    line.split('|').slice(1, -1).map(c => c.trim());
+
+  const headers = parseRow(lines[0]);
+  // Filter out divider line (| :--- | :--- |)
+  const dataLines = lines.slice(1).filter(l => !l.replace(/[\s|:-]/g, '').length ? false : true);
+  const rows = dataLines.map(parseRow);
+
+  return { headers, rows };
+}
+
+// Formatted component for Journal Entry Table
+const JournalEntryTable: React.FC<{ headers: string[]; rows: string[][] }> = ({ rows }) => {
+  return (
+    <div className="my-3 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
+      <div className="bg-slate-900 px-3.5 py-2 text-white flex items-center justify-between text-xs">
+        <div className="flex items-center gap-1.5 font-bold">
+          <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span>Demonstrated Journal Entry</span>
+        </div>
+        <span className="text-[11px] text-slate-400">Canadian Standards (IFRS / ASPE)</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs text-left">
+          <thead>
+            <tr className="border-b border-slate-200 bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
+              <th className="py-2.5 px-3.5">Account Title & Explanation</th>
+              <th className="py-2.5 px-3.5 text-right w-24 sm:w-28">Debit</th>
+              <th className="py-2.5 px-3.5 text-right w-24 sm:w-28">Credit</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {rows.map((row, rIdx) => {
+              const rawAccount = row[0] || '';
+              const debitAmt = row[1] || '';
+              const creditAmt = row[2] || '';
+              const isCreditRow = Boolean(creditAmt && !debitAmt) || rawAccount.startsWith('&nbsp;') || rawAccount.startsWith('    ') || rawAccount.toLowerCase().includes('credit:');
+              const cleanAccount = rawAccount
+                .replace(/^(&nbsp;|\s)+/, '')
+                .replace(/^(Debit|Credit):\s*/i, '');
+
+              // Check if row is an explanation note e.g. *(To record...)*
+              const isNote = rawAccount.startsWith('*(') || rawAccount.startsWith('(');
+
+              if (isNote) {
+                return (
+                  <tr key={rIdx} className="bg-slate-50/60">
+                    <td colSpan={3} className="py-2 px-3.5 text-slate-500 italic text-[11px]">
+                      <span dangerouslySetInnerHTML={{ __html: renderInlineFormatting(rawAccount) }} />
+                    </td>
+                  </tr>
+                );
+              }
+
+              return (
+                <tr key={rIdx} className={isCreditRow ? "bg-slate-50/40" : "bg-white"}>
+                  <td className={`py-2 px-3.5 ${isCreditRow ? "pl-7 sm:pl-9" : "pl-3.5 font-semibold text-slate-900"}`}>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold shrink-0 ${isCreditRow ? "bg-slate-200 text-slate-700" : "bg-indigo-100 text-indigo-700"}`}>
+                        {isCreditRow ? "CR" : "DR"}
+                      </span>
+                      <span dangerouslySetInnerHTML={{ __html: renderInlineFormatting(cleanAccount) }} />
+                    </div>
+                  </td>
+                  <td className="py-2 px-3.5 text-right font-mono font-medium text-slate-800">
+                    {debitAmt || '—'}
+                  </td>
+                  <td className="py-2 px-3.5 text-right font-mono font-medium text-slate-800">
+                    {creditAmt || '—'}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+// Formatted component for Structured Text Journal Entry (e.g. Debit: ... Credit: ...)
+const StructuredJournalCard: React.FC<{ rawText: string }> = ({ rawText }) => {
+  const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+
+  return (
+    <div className="my-3 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
+      <div className="bg-slate-900 px-3.5 py-2 text-white flex items-center justify-between text-xs">
+        <div className="flex items-center gap-1.5 font-bold">
+          <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span>Demonstrated Journal Entry</span>
+        </div>
+        <span className="text-[11px] text-slate-400">Canadian Standards (IFRS / ASPE)</span>
+      </div>
+      <div className="p-3.5 space-y-2 font-mono text-xs bg-slate-50/50">
+        {lines.map((line, idx) => {
+          const isDebit = line.toLowerCase().startsWith('debit:');
+          const isCredit = line.toLowerCase().includes('credit:');
+          
+          if (isDebit) {
+            return (
+              <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-indigo-50/70 border border-indigo-100">
+                <div className="flex items-center gap-2">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-200 text-indigo-800">DR</span>
+                  <span className="text-slate-900 font-semibold">{line.replace(/^debit:\s*/i, '')}</span>
+                </div>
+              </div>
+            );
+          }
+          if (isCredit) {
+            return (
+              <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-slate-100/80 border border-slate-200 ml-5 sm:ml-8">
+                <div className="flex items-center gap-2">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-300 text-slate-800">CR</span>
+                  <span className="text-slate-800">{line.replace(/^.*?credit:\s*/i, '')}</span>
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div key={idx} className="text-slate-500 italic text-[11px] pt-1">
+              {line}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// Main formatted explanation renderer
+const FormattedExplanation: React.FC<{ content: string }> = ({ content }) => {
+  // Preprocess content: clean formatting artifacts, raw code blocks, and normalize line breaks
+  let cleaned = content
+    .replace(/'''(?:text|markdown)?/gi, '')
+    .replace(/'''/g, '')
+    .replace(/```(?:text|markdown)?/gi, '```')
+    // Ensure headings have double newlines before them
+    .replace(/([^\n])\n(#{1,4}\s)/g, '$1\n\n$2')
+    // Ensure horizontal lines have double newlines
+    .replace(/([^\n])\n([-*]{3,})\n/g, '$1\n\n$2\n\n')
+    // Ensure tables are separated by double newlines
+    .replace(/([^\n|])\n(\|)/g, '$1\n\n$2')
+    .replace(/(\|\n)([^\n|])/g, '$1\n\n$2')
+    // Clean up math markers
+    .replace(/\\Delta\s*\\text\{([^}]+)\}/g, 'Change in $1')
+    .replace(/\\Delta/g, 'Change in ')
+    .replace(/\\mathbf\{([^}]+)\}/g, '$1')
+    .replace(/\\text\{([^}]+)\}/g, '$1');
+
+  // Split into content blocks
+  const rawBlocks = cleaned.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+
+  return (
+    <div className="space-y-4 text-slate-800 text-xs sm:text-sm leading-relaxed">
+      {rawBlocks.map((block, bIdx) => {
+        // Horizontal divider (--- or ***)
+        if (block.match(/^[-*]{3,}$/)) {
+          return <hr key={bIdx} className="my-3 border-slate-200" />;
+        }
+
+        // Markdown Table Block
+        if (block.includes('|') && block.split('\n').filter(l => l.trim().startsWith('|')).length >= 2) {
+          const parsed = parseMarkdownTable(block);
+          if (parsed) {
+            const hStr = parsed.headers.join(' ').toLowerCase();
+            if (hStr.includes('debit') || hStr.includes('credit') || hStr.includes('account')) {
+              return <JournalEntryTable key={bIdx} headers={parsed.headers} rows={parsed.rows} />;
+            }
+            // Generic table
+            return (
+              <div key={bIdx} className="my-3 overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table className="w-full text-xs text-left">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 text-slate-700 font-semibold">
+                      {parsed.headers.map((h, hIdx) => (
+                        <th key={hIdx} className="py-2 px-3">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {parsed.rows.map((r, rIdx) => (
+                      <tr key={rIdx} className={rIdx % 2 === 1 ? "bg-slate-50/50" : "bg-white"}>
+                        {r.map((c, cIdx) => (
+                          <td key={cIdx} className="py-2 px-3">{c}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          }
+        }
+
+        // Code block (Journal entries or text)
+        if (block.startsWith('```')) {
+          const innerLines = block.replace(/```[a-z]*/g, '').trim();
+          if (innerLines.toLowerCase().includes('debit:') || innerLines.toLowerCase().includes('credit:')) {
+            return <StructuredJournalCard key={bIdx} rawText={innerLines} />;
+          }
+          return (
+            <div key={bIdx} className="my-2 p-3 bg-slate-900 text-emerald-300 font-mono text-xs rounded-lg overflow-x-auto border border-slate-800">
+              <pre className="whitespace-pre">{innerLines}</pre>
+            </div>
+          );
+        }
+
+        // Non-code block that is a structured debit/credit entry
+        if ((block.toLowerCase().startsWith('debit:') || block.toLowerCase().includes('\ndebit:')) && block.toLowerCase().includes('credit:')) {
+          return <StructuredJournalCard key={bIdx} rawText={block} />;
+        }
+
+        // Heading 3
+        if (block.startsWith('### ')) {
+          return (
+            <div key={bIdx} className="pt-2">
+              <h4 className="text-sm font-bold text-indigo-950 pb-1.5 border-b border-indigo-100 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-indigo-600 inline-block"></span>
+                <span>{block.replace(/^###\s*/, '')}</span>
+              </h4>
+            </div>
+          );
+        }
+
+        // Heading 2 or 1
+        if (block.startsWith('## ') || block.startsWith('# ')) {
+          return (
+            <div key={bIdx} className="pt-2">
+              <h3 className="text-sm sm:text-base font-extrabold text-slate-900 pb-1 border-b border-slate-200">
+                {block.replace(/^#+\s*/, '')}
+              </h3>
+            </div>
+          );
+        }
+
+        // Bullet or Numbered List
+        if (block.match(/^[*-]\s/) || block.match(/^\d+\.\s/) || block.includes('\n* ') || block.includes('\n- ')) {
+          const items = block.split(/\n(?=[*-]\s|\d+\.\s)/);
+          return (
+            <ul key={bIdx} className="space-y-2 pl-1 list-none">
+              {items.map((item, iIdx) => {
+                const isNumbered = item.match(/^(\d+)\.\s+/);
+                const numberPrefix = isNumbered ? isNumbered[1] : null;
+                const itemText = item.replace(/^[*-]\s+|\d+\.\s+/, '').trim();
+
+                return (
+                  <li key={iIdx} className="flex items-start gap-2.5 text-slate-700">
+                    {numberPrefix ? (
+                      <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                        {numberPrefix}
+                      </span>
+                    ) : (
+                      <span className="text-indigo-500 font-bold mt-0.5 shrink-0 text-sm">•</span>
+                    )}
+                    <span
+                      className="flex-1 leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: renderInlineFormatting(itemText) }}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+          );
+        }
+
+        // Standard Paragraph: preserve internal line breaks so it NEVER collapses into a single continuous block
+        const lines = block.split('\n').filter(Boolean);
+        return (
+          <p key={bIdx} className="text-slate-700 leading-relaxed">
+            {lines.map((line, lIdx) => (
+              <React.Fragment key={lIdx}>
+                {lIdx > 0 && <br />}
+                <span dangerouslySetInnerHTML={{ __html: renderInlineFormatting(line) }} />
+              </React.Fragment>
+            ))}
+          </p>
+        );
+      })}
+    </div>
+  );
+};
+
+export const AiTutorModal: React.FC<AiTutorModalProps> = ({
+  isOpen,
+  onClose,
+  contextScenario,
+  contextUserLines,
+  contextCorrectLines
+}) => {
+  const [question, setQuestion] = useState('');
+  const [response, setResponse] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Set initial default prompt if contextScenario is provided
+  useEffect(() => {
+    if (contextScenario) {
+      setQuestion(`Can you explain why the journal entry for "${contextScenario.title}" uses these accounts and debits/credits?`);
+    } else {
+      setQuestion('');
+    }
+    setResponse(null);
+  }, [contextScenario, isOpen]);
+
+  // Handle escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  const handleAsk = async (queryText?: string) => {
+    const q = (queryText || question).trim();
+    if (!q) return;
+
+    setIsLoading(true);
+    setResponse(null);
+
+    const payload = {
+      question: q,
+      scenarioTitle: contextScenario?.title,
+      scenarioNarrative: contextScenario?.narrative,
+      scenarioTopic: contextScenario?.topic,
+      companyName: contextScenario?.companyName,
+      userEntry: contextUserLines,
+      correctEntry: contextCorrectLines
+    };
+
+    try {
+      const res = await fetch('/api/ai-tutor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        throw new Error(`Server returned error status ${res.status}`);
+      }
+
+      const data = await res.json();
+      if (data && data.reply) {
+        setResponse(data.reply);
+      } else {
+        throw new Error('Empty reply in response');
+      }
+    } catch (err: any) {
+      console.warn('Network or server error in AI Tutor, invoking educational accounting engine:', err);
+      // Generate educational explanation client-side
+      const fallbackReply = generateEducationalExplanation(payload);
+      setResponse(fallbackReply);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+      <div 
+        className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in duration-200"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tutor-modal-title"
+      >
+        {/* Modal Header */}
+        <div className="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-300 flex items-center justify-center border border-indigo-400/30">
+              <Sparkles className="w-4 h-4 text-indigo-300" />
+            </div>
+            <div>
+              <h3 id="tutor-modal-title" className="font-bold text-sm sm:text-base leading-tight">
+                Canadian Accounting Professor & Socratic AI Tutor
+              </h3>
+              <p className="text-xs text-slate-400">
+                Detailed conceptual breakdowns & Canadian standards (IFRS & ASPE)
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            aria-label="Close dialog"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Modal Body */}
+        <div className="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1">
+          {/* Scenario context chip if present */}
+          {contextScenario && (
+            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-700 flex items-start gap-2">
+              <BookOpen className="w-4 h-4 text-indigo-600 mt-0.5 shrink-0" />
+              <div>
+                <span className="font-bold text-slate-900">Current Context:</span> {contextScenario.title} ({contextScenario.topic})
+                <p className="text-slate-500 text-[11px] mt-0.5 line-clamp-2">{contextScenario.narrative}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Quick Questions Chips */}
+          <div>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1">
+              <HelpCircle className="w-3.5 h-3.5" />
+              Frequently Asked Canadian Accounting Questions
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {QUICK_PROMPTS.map((prompt, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    setQuestion(prompt);
+                    handleAsk(prompt);
+                  }}
+                  className="px-2.5 py-1 text-xs rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 border border-slate-200 text-slate-700 transition-colors cursor-pointer text-left"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Question Input */}
+          <div className="space-y-2">
+            <label htmlFor="tutor-question" className="block text-xs font-semibold text-slate-700">
+              Ask your question:
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="tutor-question"
+                type="text"
+                placeholder="e.g., Why do we debit unearned revenue when revenue is earned?"
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleAsk();
+                }}
+                className="flex-1 px-3.5 py-2 text-xs sm:text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <button
+                onClick={() => handleAsk()}
+                disabled={isLoading || !question.trim()}
+                className={`px-4 py-2 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
+                  isLoading || !question.trim()
+                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
+                }`}
+              >
+                <span>{isLoading ? 'Thinking...' : 'Ask'}</span>
+                <Send className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Response Box */}
+          {isLoading && (
+            <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 text-center text-slate-500 text-xs sm:text-sm space-y-2">
+              <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <p>Analyzing accounting standards & preparing Canadian pedagogical explanation...</p>
+            </div>
+          )}
+
+          {response && !isLoading && (
+            <div className="p-4 sm:p-5 bg-indigo-50/40 rounded-xl border border-indigo-100/80 text-xs sm:text-sm text-slate-800 leading-relaxed space-y-3 animate-in fade-in">
+              <div className="font-bold text-indigo-950 flex items-center gap-1.5 text-xs uppercase tracking-wider border-b border-indigo-100 pb-2">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                Accounting Professor Explanation:
+              </div>
+              <FormattedExplanation content={response} />
+            </div>
+          )}
+        </div>
+
+        {/* Modal Footer */}
+        <div className="p-3 bg-slate-50 border-t border-slate-200 flex justify-between items-center text-xs text-slate-500">
+          <span className="hidden sm:inline">Aligned with CPA Canada Standards (IFRS & ASPE)</span>
+          <button
+            onClick={onClose}
+            className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 cursor-pointer ml-auto"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

@@ -1,0 +1,6 @@
+{
+  "name": "Accounting Practice Hub",
+  "description": "Interactive financial accounting practice platform for university students to master journal entries, T-accounts, trial balances, and financial statements.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
