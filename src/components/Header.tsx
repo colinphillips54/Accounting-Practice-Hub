@@ -68,6 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
           <nav className="hidden lg:flex items-center gap-1">
             <button
               onClick={() => onSelectTab('learn')}
+              title="Learn accounting concepts and test your understanding."
               className={`px-3 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 cursor-pointer ${
                 activeTab === 'learn'
                   ? 'bg-slate-100 text-slate-900 font-semibold'
@@ -80,6 +81,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             <button
               onClick={() => onSelectTab('practice')}
+              title="Improve your journal entry skills through interactive questions."
               className={`px-3 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 cursor-pointer ${
                 activeTab === 'practice'
                   ? 'bg-slate-100 text-slate-900 font-semibold'
@@ -92,6 +94,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             <button
               onClick={() => onSelectTab('cycle')}
+              title="Practise the complete accounting cycle, from transactions to financial statements."
               className={`px-3 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 cursor-pointer ${
                 activeTab === 'cycle'
                   ? 'bg-slate-100 text-slate-900 font-semibold'
@@ -104,6 +107,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             <button
               onClick={() => onSelectTab('ifrs')}
+              title="Apply accounting standards to CPA-style case scenarios."
               className={`px-3 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 cursor-pointer ${
                 activeTab === 'ifrs'
                   ? 'bg-slate-100 text-slate-900 font-semibold'
@@ -116,6 +120,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             <button
               onClick={() => onSelectTab('progress')}
+              title="Track your performance and identify areas for improvement."
               className={`px-3 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-2 cursor-pointer ${
                 activeTab === 'progress'
                   ? 'bg-slate-100 text-slate-900 font-semibold'
@@ -144,6 +149,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="lg:hidden flex items-center gap-1.5 overflow-x-auto py-2 border-t border-slate-100 text-xs scrollbar-none">
           <button
             onClick={() => onSelectTab('learn')}
+            title="Learn accounting concepts and test your understanding."
             className={`px-2.5 py-1.5 font-medium rounded whitespace-nowrap cursor-pointer shrink-0 transition-colors ${
               activeTab === 'learn' ? 'bg-slate-200 text-slate-900 font-semibold' : 'text-slate-600 hover:text-slate-900'
             }`}
@@ -152,6 +158,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
           <button
             onClick={() => onSelectTab('practice')}
+            title="Improve your journal entry skills through interactive questions."
             className={`px-2.5 py-1.5 font-medium rounded whitespace-nowrap cursor-pointer shrink-0 transition-colors ${
               activeTab === 'practice' ? 'bg-slate-200 text-slate-900 font-semibold' : 'text-slate-600 hover:text-slate-900'
             }`}
@@ -160,6 +167,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
           <button
             onClick={() => onSelectTab('cycle')}
+            title="Practise the complete accounting cycle, from transactions to financial statements."
             className={`px-2.5 py-1.5 font-medium rounded whitespace-nowrap cursor-pointer shrink-0 transition-colors ${
               activeTab === 'cycle' ? 'bg-slate-200 text-slate-900 font-semibold' : 'text-slate-600 hover:text-slate-900'
             }`}
@@ -168,6 +176,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
           <button
             onClick={() => onSelectTab('ifrs')}
+            title="Apply accounting standards to CPA-style case scenarios."
             className={`px-2.5 py-1.5 font-medium rounded whitespace-nowrap cursor-pointer shrink-0 transition-colors ${
               activeTab === 'ifrs' ? 'bg-slate-200 text-slate-900 font-semibold' : 'text-slate-600 hover:text-slate-900'
             }`}
@@ -176,6 +185,7 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
           <button
             onClick={() => onSelectTab('progress')}
+            title="Track your performance and identify areas for improvement."
             className={`px-2.5 py-1.5 font-medium rounded whitespace-nowrap cursor-pointer shrink-0 transition-colors ${
               activeTab === 'progress' ? 'bg-slate-200 text-slate-900 font-semibold' : 'text-slate-600 hover:text-slate-900'
             }`}

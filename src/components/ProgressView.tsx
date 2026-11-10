@@ -57,6 +57,26 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Review & Progress Section Heading */}
+      <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded border border-purple-200 flex items-center gap-1.5">
+                <History className="w-3.5 h-3.5 text-purple-600" />
+                Review & Progress
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
+              Review & Progress
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-600 mt-1">
+              Track your performance and identify areas for improvement.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Overview Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">

@@ -257,13 +257,13 @@ export const AccountingCycleView: React.FC<AccountingCycleViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Case Header & Controls */}
+      {/* Cycle Flow Section Heading & Controls */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 pb-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1">
               <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200">
-                End-to-End Accounting Cycle
+                Cycle Flow
               </span>
               <span className="text-xs text-slate-500 font-medium">
                 {activeCase.businessType}
@@ -272,12 +272,20 @@ export const AccountingCycleView: React.FC<AccountingCycleViewProps> = ({
                 Practice Case #{caseNumber}
               </span>
             </div>
-            <h2 className="text-lg sm:text-xl font-bold text-slate-900 break-words">
-              {activeCase.title}
-            </h2>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 break-words">
+              Cycle Flow
+            </h1>
             <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-3xl leading-relaxed">
-              {activeCase.description}
+              Practise the complete accounting cycle, from transactions to financial statements.
             </p>
+            <div className="mt-2.5 pt-2 border-t border-slate-100">
+              <h2 className="text-sm sm:text-base font-semibold text-slate-900">
+                {activeCase.title}
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {activeCase.description}
+              </p>
+            </div>
           </div>
 
           {/* Quick Actions & Case Generation Controls */}

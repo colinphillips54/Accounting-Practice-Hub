@@ -120,10 +120,10 @@ export const HomeHeroView: React.FC<HomeHeroViewProps> = ({
                 <BookOpen className="w-5 h-5" />
               </div>
               <h2 className="font-bold text-base text-slate-900 group-hover:text-blue-600 transition-colors">
-                Theory & MCQs
+                Theory
               </h2>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Study accounting theory and test your knowledge with continuously generated multiple-choice practice questions across 4 difficulty tiers.
+                Learn accounting concepts and test your understanding.
               </p>
             </div>
             <div className="pt-4 mt-2 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-blue-600">
@@ -142,10 +142,10 @@ export const HomeHeroView: React.FC<HomeHeroViewProps> = ({
                 <Calculator className="w-5 h-5" />
               </div>
               <h2 className="font-bold text-base text-slate-900 group-hover:text-indigo-600 transition-colors">
-                Journal Practice
+                Practice
               </h2>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Complete fictional business transactions, select accounts, enter debits and credits, and get immediate line-by-line feedback with error diagnosis.
+                Improve your journal entry skills through interactive questions.
               </p>
             </div>
             <div className="pt-4 mt-2 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-indigo-600">
@@ -164,10 +164,10 @@ export const HomeHeroView: React.FC<HomeHeroViewProps> = ({
                 <FileSpreadsheet className="w-5 h-5" />
               </div>
               <h2 className="font-bold text-base text-slate-900 group-hover:text-emerald-600 transition-colors">
-                Accounting Cycle Flow
+                Cycle Flow
               </h2>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Experience the complete accounting cycle for a Canadian company. Watch your journal entries populate live T-accounts, trial balance, and Statement of Financial Position.
+                Practise the complete accounting cycle, from transactions to financial statements.
               </p>
             </div>
             <div className="pt-4 mt-2 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-emerald-600">
@@ -186,10 +186,10 @@ export const HomeHeroView: React.FC<HomeHeroViewProps> = ({
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <h2 className="font-bold text-base text-slate-900 group-hover:text-indigo-600 transition-colors">
-                IFRS Application Cases
+                IFRS Application
               </h2>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Analyze CPA Canada-style business narratives and appendices, evaluate technical IFRS/IAS criteria, and formulate recommendations with financial statement user impacts.
+                Apply accounting standards to CPA-style case scenarios.
               </p>
             </div>
             <div className="pt-4 mt-2 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-indigo-600">

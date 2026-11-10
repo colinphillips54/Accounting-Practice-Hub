@@ -222,24 +222,24 @@ export const SinglePracticeView: React.FC<SinglePracticeViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Category Selection Header */}
+      {/* Practice Section Header & Category Selection */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-1">
               <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded border border-indigo-200 flex items-center gap-1.5">
                 <GraduationCap className="w-3.5 h-3.5 text-indigo-600" />
-                Practice Journal Entries
+                Practice
               </span>
               <span className="text-[11px] font-semibold text-slate-500">
                 Continuous Dynamic Generation
               </span>
             </div>
-            <h1 className="text-lg sm:text-xl font-bold text-slate-900 mt-1">
-              Select Difficulty Category
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
+              Practice
             </h1>
-            <p className="text-xs sm:text-sm text-slate-600">
-              Each category dynamically generates an unlimited supply of new, unique journal entry questions matching university accounting curricula.
+            <p className="text-xs sm:text-sm text-slate-600 mt-1">
+              Improve your journal entry skills through interactive questions.
             </p>
           </div>
 

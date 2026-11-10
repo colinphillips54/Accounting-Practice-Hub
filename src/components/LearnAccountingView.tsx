@@ -42,6 +42,26 @@ export const LearnAccountingView: React.FC<LearnAccountingViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Section Heading */}
+      <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded border border-blue-200 flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+                Theory
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
+              Theory
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-600 mt-1">
+              Learn accounting concepts and test your understanding.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Top Section Navigation Switcher */}
       <div className="bg-white rounded-xl border border-slate-200 p-2 sm:p-2.5 shadow-xs flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">

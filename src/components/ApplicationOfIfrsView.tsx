@@ -322,21 +322,20 @@ export const ApplicationOfIfrsView: React.FC<ApplicationOfIfrsViewProps> = ({
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/30 text-blue-200 border border-blue-400/30">
-                Part I CPA Canada Handbook
+                IFRS Application
               </span>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
-                All IFRS & IAS Standards Covered
+                Part I CPA Canada Handbook
               </span>
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/40 text-indigo-200 border border-indigo-400/30">
                 Practice Case #{caseNumber}
               </span>
             </div>
-            <h2 className="text-xl md:text-2xl font-bold tracking-tight">
-              Application of IFRS — CPA Canada Practice Cases
-            </h2>
-            <p className="text-sm text-blue-200/90 max-w-3xl">
-              Analyze multi-transaction business cases under International Financial Reporting Standards.
-              Read the background and appendices, independently identify the accounting issues, apply Handbook criteria, formulate recommendations, and evaluate their impact on financial statement users.
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight">
+              IFRS Application
+            </h1>
+            <p className="text-sm text-blue-200/90 max-w-3xl font-medium">
+              Apply accounting standards to CPA-style case scenarios.
             </p>
           </div>
 
