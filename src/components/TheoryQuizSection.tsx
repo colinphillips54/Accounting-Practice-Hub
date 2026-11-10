@@ -19,6 +19,7 @@ import {
   THEORY_DIFFICULTY_CONFIGS,
   TheoryDifficultyConfig
 } from '../utils/theoryQuestionGenerator';
+import { recordTheoryAttempt } from '../utils/storage';
 
 interface TheoryQuizSectionProps {
   onOpenAiTutor: () => void;
@@ -85,10 +86,12 @@ export const TheoryQuizSection: React.FC<TheoryQuizSectionProps> = ({
     setIsSubmitted(true);
     setValidationWarning(null);
 
+    const newStreak = isCorrect ? stats.streak + 1 : 0;
+    recordTheoryAttempt(selectedDifficulty, isCorrect, newStreak);
+
     setStats(prev => {
       const newAnswered = prev.answered + 1;
       const newCorrect = prev.correct + (isCorrect ? 1 : 0);
-      const newStreak = isCorrect ? prev.streak + 1 : 0;
       const newBestStreak = Math.max(prev.bestStreak, newStreak);
       return {
         answered: newAnswered,

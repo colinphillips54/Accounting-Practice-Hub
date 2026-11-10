@@ -27,7 +27,7 @@ import { generatePracticeScenario } from '../utils/practiceQuestionGenerator';
 import { JournalEntryForm } from './JournalEntryForm';
 import { FeedbackCard } from './FeedbackCard';
 import { evaluateJournalEntry } from '../utils/accountingEngine';
-import { saveCompletedScenario, recordTopicAttempt, saveMistake } from '../utils/storage';
+import { saveCompletedScenario, recordTopicAttempt, saveMistake, recordPracticeDifficultyAttempt } from '../utils/storage';
 import { getAccount } from '../data/accounts';
 
 interface SinglePracticeViewProps {
@@ -162,6 +162,7 @@ export const SinglePracticeView: React.FC<SinglePracticeViewProps> = ({
     // Substantive attempt
     setAttemptCount(nextAttempt);
     recordTopicAttempt(currentScenario.topic, evalResult.isCorrect);
+    recordPracticeDifficultyAttempt(selectedCategory, evalResult.isCorrect, evalResult.isCorrect);
 
     if (evalResult.isCorrect) {
       // 1. Save completed progress

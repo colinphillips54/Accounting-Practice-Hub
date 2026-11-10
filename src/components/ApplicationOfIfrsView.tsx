@@ -33,6 +33,7 @@ import {
   ALL_IFRS_STANDARDS,
   CORE_IFRS_STANDARDS
 } from '../utils/ifrsCaseGenerator';
+import { saveIfrsCaseRecord } from '../utils/storage';
 import { isSubmissionBlank, evaluateStudentCaseSubmission, sanitizeEvaluationFeedback } from '../utils/ifrsCaseEvaluator';
 
 interface ApplicationOfIfrsViewProps {
@@ -283,17 +284,78 @@ export const ApplicationOfIfrsView: React.FC<ApplicationOfIfrsViewProps> = ({
         })
       });
 
+      let evalResult: CaseEvaluationResult;
       if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
         const data: CaseEvaluationResult = await res.json();
-        setCurrentEvaluation(sanitizeEvaluationFeedback(data));
+        evalResult = sanitizeEvaluationFeedback(data);
       } else {
         // Fallback to local evaluation engine
-        const fallback = evaluateStudentCaseSubmission(activeCase, currentSubmission);
-        setCurrentEvaluation(fallback);
+        evalResult = evaluateStudentCaseSubmission(activeCase, currentSubmission);
       }
+
+      // Record evaluation progress across the 5 pillars
+      const issues = evalResult.evaluatedIssues || [];
+      const totalIssues = Math.max(issues.length, 1);
+      const issuesCorrect = issues.filter(i => i.issueIdentifiedCorrectly).length;
+      const standardsCorrect = issues.filter(i => i.standardCorrect).length;
+      const issueIdentificationScore = Math.round((issuesCorrect / totalIssues) * 100);
+      const standardsScore = Math.round((standardsCorrect / totalIssues) * 100);
+      const competentAnalysis = issues.filter(i => i.status === 'Competent' || (i.criteriaAssessment && !i.criteriaAssessment.toLowerCase().includes('lacks'))).length;
+      const analysisScore = Math.round((competentAnalysis / totalIssues) * 100);
+      const competentRec = issues.filter(i => i.recommendationAssessment && !i.recommendationAssessment.toLowerCase().includes('missing')).length;
+      const recommendationsScore = Math.round((competentRec / totalIssues) * 100);
+      const competentUser = issues.filter(i => i.userImpactAssessment && !i.userImpactAssessment.toLowerCase().includes('missing')).length;
+      const userImplicationsScore = Math.round((competentUser / totalIssues) * 100);
+
+      saveIfrsCaseRecord({
+        id: `ifrs-${activeCase.id}-${Date.now()}`,
+        caseId: activeCase.id,
+        caseTitle: `${activeCase.companyName} — ${activeCase.title}`,
+        timestamp: new Date().toISOString(),
+        overallScore: evalResult.overallScore,
+        overallPerformance: evalResult.overallPerformance,
+        issueIdentificationScore,
+        standardsScore,
+        analysisScore,
+        recommendationsScore,
+        userImplicationsScore,
+        totalIssues,
+        issuesCorrect
+      });
+
+      setCurrentEvaluation(evalResult);
     } catch {
       // On network failure, use deterministic local evaluator
       const fallback = evaluateStudentCaseSubmission(activeCase, currentSubmission);
+      const issues = fallback.evaluatedIssues || [];
+      const totalIssues = Math.max(issues.length, 1);
+      const issuesCorrect = issues.filter(i => i.issueIdentifiedCorrectly).length;
+      const standardsCorrect = issues.filter(i => i.standardCorrect).length;
+      const issueIdentificationScore = Math.round((issuesCorrect / totalIssues) * 100);
+      const standardsScore = Math.round((standardsCorrect / totalIssues) * 100);
+      const competentAnalysis = issues.filter(i => i.status === 'Competent' || (i.criteriaAssessment && !i.criteriaAssessment.toLowerCase().includes('lacks'))).length;
+      const analysisScore = Math.round((competentAnalysis / totalIssues) * 100);
+      const competentRec = issues.filter(i => i.recommendationAssessment && !i.recommendationAssessment.toLowerCase().includes('missing')).length;
+      const recommendationsScore = Math.round((competentRec / totalIssues) * 100);
+      const competentUser = issues.filter(i => i.userImpactAssessment && !i.userImpactAssessment.toLowerCase().includes('missing')).length;
+      const userImplicationsScore = Math.round((competentUser / totalIssues) * 100);
+
+      saveIfrsCaseRecord({
+        id: `ifrs-${activeCase.id}-${Date.now()}`,
+        caseId: activeCase.id,
+        caseTitle: `${activeCase.companyName} — ${activeCase.title}`,
+        timestamp: new Date().toISOString(),
+        overallScore: fallback.overallScore,
+        overallPerformance: fallback.overallPerformance,
+        issueIdentificationScore,
+        standardsScore,
+        analysisScore,
+        recommendationsScore,
+        userImplicationsScore,
+        totalIssues,
+        issuesCorrect
+      });
+
       setCurrentEvaluation(fallback);
     } finally {
       setIsEvaluating(false);

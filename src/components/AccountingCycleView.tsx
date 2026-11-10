@@ -24,7 +24,10 @@ import { evaluateJournalEntry, calculateLedger, generateTrialBalance, generateFi
 import { getAccount } from '../data/accounts';
 import { 
   loadMultiCaseProgress, 
-  saveMultiCaseProgress 
+  saveMultiCaseProgress,
+  recordCycleAttempt,
+  markCycleCaseCompleted,
+  resetCycleCaseProgress
 } from '../utils/storage';
 import { generateCycleCase, validateCycleCase } from '../utils/cycleCaseGenerator';
 
@@ -200,12 +203,26 @@ export const AccountingCycleView: React.FC<AccountingCycleViewProps> = ({
     }
 
     setTxAttemptCount(nextAttempt);
+    const willBeCompletedCount = res.isCorrect && !completedIndices.includes(activeTxIndex)
+      ? completedIndices.length + 1
+      : completedIndices.length;
+
+    recordCycleAttempt(
+      activeCase.id,
+      activeCase.title,
+      activeCase.transactions.length,
+      res.isCorrect,
+      willBeCompletedCount
+    );
 
     if (res.isCorrect) {
       if (!completedIndices.includes(activeTxIndex)) {
         const nextCompleted = [...completedIndices, activeTxIndex];
         setCompletedIndices(nextCompleted);
         saveMultiCaseProgress(activeCase.id, nextCompleted);
+        if (nextCompleted.length === activeCase.transactions.length) {
+          markCycleCaseCompleted(activeCase.id, activeCase.title, activeCase.transactions.length);
+        }
       }
     }
   };
@@ -240,12 +257,14 @@ export const AccountingCycleView: React.FC<AccountingCycleViewProps> = ({
     const allIndices = activeCase.transactions.map((_, i) => i);
     setCompletedIndices(allIndices);
     saveMultiCaseProgress(activeCase.id, allIndices);
+    markCycleCaseCompleted(activeCase.id, activeCase.title, activeCase.transactions.length);
     setCycleTab('financial_statements');
   };
 
   const handleResetCase = () => {
     setCompletedIndices([]);
     saveMultiCaseProgress(activeCase.id, []);
+    resetCycleCaseProgress(activeCase.id);
     setActiveTxIndex(0);
     setTxAttemptCount(0);
     setLines([

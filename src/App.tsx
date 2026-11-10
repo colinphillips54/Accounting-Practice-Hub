@@ -155,6 +155,7 @@ export default function App() {
           <ProgressView
             onGoToPracticeTopic={handleGoToPracticeTopic}
             onRefresh={refreshStats}
+            onNavigateTab={setActiveTab}
           />
         )}
       </main>
