@@ -169,7 +169,7 @@ export const ApplicationOfIfrsView: React.FC<ApplicationOfIfrsViewProps> = ({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ previousCompanyNames: seenCompanyNames })
         });
-        if (resp.ok) {
+        if (resp.ok && resp.headers.get('content-type')?.includes('application/json')) {
           const data = await resp.json();
           if (data && data.case && data.case.companyName && Array.isArray(data.case.issues) && data.case.issues.length >= 2) {
             newCase = data.case;
@@ -283,7 +283,7 @@ export const ApplicationOfIfrsView: React.FC<ApplicationOfIfrsViewProps> = ({
         })
       });
 
-      if (res.ok) {
+      if (res.ok && res.headers.get('content-type')?.includes('application/json')) {
         const data: CaseEvaluationResult = await res.json();
         setCurrentEvaluation(sanitizeEvaluationFeedback(data));
       } else {

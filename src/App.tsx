@@ -11,9 +11,31 @@ import { AccountingScenario, JournalEntryLine } from './types/accounting';
 import { loadCompletedScenarios, loadTopicStats } from './utils/storage';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('home');
+  const getInitialTab = (): ActiveTab => {
+    if (typeof window === 'undefined') return 'home';
+    const hash = window.location.hash.replace('#', '').toLowerCase();
+    if (hash === 'theory') return 'learn';
+    const validTabs: ActiveTab[] = ['home', 'learn', 'practice', 'cycle', 'ifrs', 'progress'];
+    if (validTabs.includes(hash as ActiveTab)) return hash as ActiveTab;
+    const path = window.location.pathname.replace(/^\//, '').toLowerCase();
+    if (path === 'theory') return 'learn';
+    if (validTabs.includes(path as ActiveTab)) return path as ActiveTab;
+    return 'home';
+  };
+
+  const [activeTab, setActiveTabState] = useState<ActiveTab>(getInitialTab);
   const [completedCount, setCompletedCount] = useState(0);
   const [streakCount, setStreakCount] = useState(0);
+
+  const setActiveTab = (tab: ActiveTab) => {
+    setActiveTabState(tab);
+    if (typeof window !== 'undefined') {
+      const targetHash = tab === 'home' ? '' : tab === 'learn' ? 'theory' : tab;
+      if (window.location.hash.replace('#', '') !== targetHash) {
+        window.location.hash = targetHash;
+      }
+    }
+  };
 
   // AI Tutor modal state
   const [isAiTutorOpen, setIsAiTutorOpen] = useState(false);
@@ -39,6 +61,23 @@ export default function App() {
 
   useEffect(() => {
     refreshStats();
+
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '').toLowerCase();
+      if (hash === 'theory') {
+        setActiveTabState('learn');
+      } else {
+        const validTabs: ActiveTab[] = ['home', 'learn', 'practice', 'cycle', 'ifrs', 'progress'];
+        if (validTabs.includes(hash as ActiveTab)) {
+          setActiveTabState(hash as ActiveTab);
+        } else if (!hash) {
+          setActiveTabState('home');
+        }
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
   const handleOpenAiTutorWithContext = (

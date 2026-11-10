@@ -407,8 +407,8 @@ export const AiTutorModal: React.FC<AiTutorModalProps> = ({
         body: JSON.stringify(payload)
       });
 
-      if (!res.ok) {
-        throw new Error(`Server returned error status ${res.status}`);
+      if (!res.ok || !res.headers.get('content-type')?.includes('application/json')) {
+        throw new Error(`Server returned non-JSON or status ${res.status}`);
       }
 
       const data = await res.json();

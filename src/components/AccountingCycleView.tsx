@@ -115,7 +115,7 @@ export const AccountingCycleView: React.FC<AccountingCycleViewProps> = ({
             previousCompanyNames: seenCompanyNames
           })
         });
-        if (resp.ok) {
+        if (resp.ok && resp.headers.get('content-type')?.includes('application/json')) {
           const data = await resp.json();
           if (data && data.case && data.case.companyName && Array.isArray(data.case.transactions) && data.case.transactions.length >= 5) {
             newCase = data.case;
